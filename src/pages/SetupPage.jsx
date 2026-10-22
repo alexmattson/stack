@@ -36,24 +36,29 @@ const FloatingSave = ({ dirty, state, onSave }) => {
   </button></div>;
 };
 
-export function SetupPage({ data, onBack }){
-  const { gear, prog, trainingDays, api } = data;
-  const [g, setG] = useState(gear); const [p, setP] = useState(prog); const [state, setState] = useState("idle"); const [err, setErr] = useState("");
-  useEffect(() => { setG(gear); setP(prog); }, [gear, prog]);
-  const dirty = !same(g, gear) || !same(p, prog);
-  const equip = new Set(g.equipment || []);
-  const toggleEquip = k => { const n = new Set(equip); n.has(k) ? n.delete(k) : n.add(k); setG({...g, equipment:[...n], bar:n.has("bar")}); };
+
+// Shared save plumbing: dirty tracking + floating pill + the actual rebuild.
+function useSave(data, buildPayload, validate){
+  const [state, setState] = useState("idle"); const [err, setErr] = useState("");
   const save = async () => {
-    if (!g.dumbbells.length && !equip.has("barbell") && !(equip.has("kettlebell") && g.kettlebells.length) && !equip.has("cable")) return setErr("Pick at least one dumbbell weight, or other weighted equipment.");
-    if (equip.has("kettlebell") && !g.kettlebells.length) return setErr("Pick the kettlebell weights you have.");
-    if (!p.focus.length) return setErr("Pick at least one area to train.");
+    const v = validate && validate(); if (v) return setErr(v);
     setErr(""); setState("saving");
-    try { await api.saveSetup(g, {...p, bodyweight:+p.bodyweight || 150}); setState("saved"); setTimeout(() => setState("idle"), 2200); } catch (e) { setState("idle"); setErr("Saved here, but couldn't sync: " + api.friendlyDbError(e)); }
+    const [g, p] = buildPayload();
+    try { await data.api.saveSetup(g, p); setState("saved"); setTimeout(() => setState("idle"), 2200); } catch (e) { setState("idle"); setErr("Saved here, but couldn't sync: " + data.api.friendlyDbError(e)); }
   };
+  return { state, err, save };
+}
+
+export function GoalsPage({ data, onBack }){
+  const { prog, trainingDays } = data;
+  const [p, setP] = useState(prog);
+  useEffect(() => { setP(prog); }, [prog]);
+  const dirty = !same(p, prog);
+  const { state, err, save } = useSave(data, () => [data.gear, {...p, bodyweight:+p.bodyweight || 150}], () => !p.focus.length ? "Pick at least one area to train." : "");
   return (
-    <section id="gear">
-      <PageHeader left={<BackButton onClick={onBack}/>} title="Setup" sub="Your goals and gear shape every workout"/>
-      <Card tone="aqua" className="rowcard" style={{overflow:"hidden", minHeight:120}}><div className="grow"><b>Your gym, your goals</b><small>The plan rebuilds around what you own and what you're after. Progression only suggests weights you have.</small></div><img src={IMG("gear.png")} alt="" style={{width:"46%", maxWidth:190, height:"auto", margin:"-26px -30px -30px 0", filter:"drop-shadow(0 10px 14px rgba(21,48,58,.25))"}}/></Card>
+    <section id="goals">
+      <PageHeader left={<BackButton onClick={onBack}/>} title="Goals" sub="What you're training for"/>
+      <Card tone="aqua" className="rowcard" style={{overflow:"hidden", minHeight:120}}><div className="grow"><b>Your goals, your plan</b><small>Change anything here and the whole program is rebuilt around it.</small></div><img src={IMG("hero-train.png")} alt="" style={{height:140, width:"auto", margin:"-20px -10px -30px 0", filter:"drop-shadow(0 10px 14px rgba(21,48,58,.25))"}}/></Card>
 
       <h2>What do you want to train?</h2>
       <Card><div className="focus">{[["upper","Upper","Chest, back, shoulders, arms"],["lower","Lower","Quads, hams, glutes, calves"],["core","Core","Abs and obliques"]].map(([v, t, s]) => <button key={v} aria-pressed={p.focus.includes(v)} onClick={() => setP({...p, focus: p.focus.includes(v) ? p.focus.filter(x => x !== v) : [...p.focus, v]})}><b>{t}</b><small>{s}</small></button>)}</div></Card>
@@ -71,6 +76,28 @@ export function SetupPage({ data, onBack }){
         <RowCard title="Bodyweight" sub="Sets your starting weights" right={<><input type="number" inputMode="decimal" value={p.bodyweight} onChange={e => setP({...p, bodyweight:e.target.value})} style={{width:96, textAlign:"center"}}/><span className="muted">lb</span></>}/>
       </Card>
       <p className="muted" style={{fontSize:".82rem", margin:"8px 0 0"}}>Training days are set on the Schedule page: <b>{trainingDays.length ? trainingDays.map(d => DOW[d]).join(", ") + ` (${trainingDays.length}/week)` : "none yet"}</b>.</p>
+      {err && <div className="status">{err}</div>}
+      <FloatingSave dirty={dirty} state={state} onSave={save}/>
+    </section>
+  );
+}
+
+export function EquipmentPage({ data, onBack }){
+  const { gear } = data;
+  const [g, setG] = useState(gear);
+  useEffect(() => { setG(gear); }, [gear]);
+  const dirty = !same(g, gear);
+  const equip = new Set(g.equipment || []);
+  const toggleEquip = k => { const n = new Set(equip); n.has(k) ? n.delete(k) : n.add(k); setG({...g, equipment:[...n], bar:n.has("bar")}); };
+  const { state, err, save } = useSave(data, () => [g, data.prog], () => {
+    if (!g.dumbbells.length && !equip.has("barbell") && !(equip.has("kettlebell") && g.kettlebells.length) && !equip.has("cable")) return "Pick at least one dumbbell weight, or other weighted equipment.";
+    if (equip.has("kettlebell") && !g.kettlebells.length) return "Pick the kettlebell weights you have.";
+    return "";
+  });
+  return (
+    <section id="gear">
+      <PageHeader left={<BackButton onClick={onBack}/>} title="Equipment" sub="What you have to work with"/>
+      <Card tone="aqua" className="rowcard" style={{overflow:"hidden", minHeight:120}}><div className="grow"><b>Your gym</b><small>The plan only uses what you own, and progression only suggests weights you have.</small></div><img src={IMG("gear.png")} alt="" style={{width:"46%", maxWidth:190, height:"auto", margin:"-26px -30px -30px 0", filter:"drop-shadow(0 10px 14px rgba(21,48,58,.25))"}}/></Card>
 
       <h2>Dumbbells <span className="muted" style={{fontWeight:600, fontSize:".85rem"}}>· lb, per hand</span></h2>
       <Card>

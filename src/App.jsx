@@ -10,7 +10,7 @@ import { WorkoutPage } from "./pages/WorkoutPage.jsx";
 import { FocusMode } from "./pages/FocusMode.jsx";
 import { SchedulePage } from "./pages/SchedulePage.jsx";
 import { ProgressPage } from "./pages/ProgressPage.jsx";
-import { SetupPage } from "./pages/SetupPage.jsx";
+import { GoalsPage, EquipmentPage } from "./pages/SetupPage.jsx";
 import { AccountPage } from "./pages/AccountPage.jsx";
 import { today } from "./lib/dates.js";
 import { sessionFor, plannedDayFor } from "./lib/plan.js";
@@ -40,7 +40,8 @@ function Shell({ auth }){
         {nav.tab === "log" && <WorkoutPage data={data} wo={wo} date={wsel.date} onBack={nav.back} onFocus={() => setFocus(true)}/>}
         {nav.tab === "schedule" && <SchedulePage data={data} onBack={nav.back} onPickDate={d => openWorkout(d)}/>}
         {nav.tab === "progress" && <ProgressPage data={data} onBack={nav.back}/>}
-        {nav.tab === "gear" && <SetupPage data={data} onBack={nav.back}/>}
+        {nav.tab === "goals" && <GoalsPage data={data} onBack={nav.back}/>}
+        {nav.tab === "gear" && <EquipmentPage data={data} onBack={nav.back}/>}
         {nav.tab === "settings" && <AccountPage data={data} auth={auth} onBack={nav.back} onManage={auth.openLogin} go={nav.go}/>}
       </div>
       {focus && <FocusMode data={data} wo={wo} onBack={() => setFocus(false)} onHome={() => { setFocus(false); nav.jump("home"); }}/>}

@@ -27,7 +27,7 @@ export function AccountPage({ data, auth, onBack, onManage, go }){
       <h2>Training</h2>
       <Card style={{display:"grid", gap:10}}>
         <RowCard icon={<IconBubble name="cal"/>} title="Training days" sub={trainingDays.length ? trainingDays.map(d => DOW[d]).join(", ") : "None set"} right={<Pill ghost style={{padding:"9px 14px"}} onClick={() => go("schedule")}>Edit</Pill>}/>
-        <RowCard icon={<IconBubble name="bolt"/>} title="Goals" sub={`${prog.focus.map(f => f[0].toUpperCase() + f.slice(1)).join(" + ")} · ${prog.goal} · ${({short:"30", standard:"45", long:"60"})[prog.length]} min`} right={<Pill ghost style={{padding:"9px 14px"}} onClick={() => go("gear")}>Edit</Pill>}/>
+        <RowCard icon={<IconBubble name="bolt"/>} title="Goals" sub={`${prog.focus.map(f => f[0].toUpperCase() + f.slice(1)).join(" + ")} · ${prog.goal} · ${({short:"30", standard:"45", long:"60"})[prog.length]} min`} right={<Pill ghost style={{padding:"9px 14px"}} onClick={() => go("goals")}>Edit</Pill>}/>
         <RowCard icon={<IconBubble name="gear"/>} title="Equipment" sub={[dbs.length ? `DB ${dbs[0]}–${dbs[dbs.length - 1]}` : "no dumbbells", gear.bench === "none" ? "no bench" : gear.bench + " bench", (gear.equipment||[]).includes("barbell") ? `bar to ${gear.barbell.max}` : null, (gear.equipment||[]).includes("kettlebell") && gear.kettlebells.length ? `KB ${gear.kettlebells.slice().sort((a,b)=>a-b).join("/")}` : null, (gear.equipment||[]).includes("cable") ? `cable to ${gear.cable.max}` : null].filter(Boolean).join(" · ")} right={<Pill ghost style={{padding:"9px 14px"}} onClick={() => go("gear")}>Edit</Pill>}/>
       </Card>
       <h2>About</h2>

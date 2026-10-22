@@ -4,6 +4,7 @@ body{margin:0;-webkit-tap-highlight-color:transparent}
 img{max-width:100%}
 [hidden]{display:none!important}
 #root{min-height:100vh}
+#goals{}
 
 /* base reset (the claude.ai wrapper used to provide this) */
 :root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);color-scheme:light}
