@@ -242,10 +242,10 @@ textarea{border-radius:18px;line-height:1.4;font-weight:500}
 .segc{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;background:var(--bg2);border-radius:999px;padding:4px}
 .segc button{border:0;background:transparent;color:var(--muted);border-radius:999px;padding:9px 0;font-weight:800;cursor:pointer}
 .segc button[aria-pressed="true"]{background:var(--card);color:var(--ink);box-shadow:0 1px 3px rgba(21,48,58,.12)}
-.gplan{background:var(--card);border-radius:22px;padding:14px;margin-bottom:10px}
-.gplan b{display:block;margin-bottom:6px}
-.gplan ul{margin:0;padding-left:18px;font-size:.9rem;color:var(--ink)}
-.gplan li.sub{color:var(--teal)}
+
+
+
+
 /* splash */
 #splash{position:fixed;inset:0;z-index:50;background:var(--bg);display:grid;place-items:center;transition:opacity .25s}
 #splash.off{opacity:0;pointer-events:none}
@@ -519,8 +519,6 @@ td.r,th.r{text-align:right}
   </div>
   <div class="status" id="g-status"></div>
 
-  <h2>Your plan</h2>
-  <div id="g-plan"></div>
 </section>
 
 <!-- ===== SETTINGS ===== -->
@@ -558,7 +556,7 @@ td.r,th.r{text-align:right}
 <!-- ===== LOGIN ===== -->
 <section id="login" hidden>
   <div class="wrap login-wrap">
-    <div class="login-art"><img class="fl fl-a" src="img/login-man.png" alt=""><img class="fl fl-b" src="img/login-woman.png" alt=""></div>
+    <div class="login-art"><img class="fl fl-a" src="img/login-leap.png" alt=""><img class="fl fl-b" src="img/login-star.png" alt=""></div>
     <div class="login-brand"><span class="logo"><svg viewBox="0 0 48 48" aria-hidden="true"><defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#1c5467"/><stop offset="1" stop-color="#2c7f98"/></linearGradient></defs><circle cx="24" cy="24" r="24" fill="url(#lg)"/><rect x="12" y="30" width="24" height="6" rx="3" fill="#ffffff" opacity=".55"/><rect x="9" y="22" width="30" height="6" rx="3" fill="#ffffff" opacity=".8"/><rect x="6" y="14" width="36" height="6" rx="3" fill="#ffd27a"/><circle cx="42" cy="17" r="4" fill="#f6a33e"/></svg></span><b>Stack</b></div>
     <h1 class="login-h">Show up. Stack it up.</h1>
     <p class="muted login-p" id="login-p">Your workouts, your progress, one place.</p>
@@ -1111,7 +1109,6 @@ function renderGear(){
   $("g-bar").setAttribute("aria-pressed", gearDraft.bar);
   $("g-bench").querySelectorAll("button").forEach(b => b.setAttribute("aria-pressed", b.dataset.v===gearDraft.bench));
   $("g-bench-sub").textContent = gearDraft.bench==="incline" ? "Incline unlocks incline press and incline curls" : gearDraft.bench==="flat" ? "Flat: presses on the bench, incline work swapped" : "No bench: presses move to the floor";
-  $("g-plan").innerHTML = PROGRAM.map((d,i)=>`<div class="gplan"><b>Day ${i+1} · ${d.name} <span class="muted" style="font-weight:600">${d.focus}</span></b><ul>${d.ex.map(([k,n,s,r,w])=>`<li class="${BASE_PROGRAM[i].ex.find(e=>e[0]===k)?"":"sub"}">${n} ${s}×${r}${w?" · start "+w+" lb":""}</li>`).join("")}</ul></div>`).join("");
 }
 $("w-all").addEventListener("click", () => { gearDraft.dumbbells = ALL_W.filter(w=>w<=50); renderGear(); });
 $("w-heavy").addEventListener("click", () => { gearDraft.dumbbells = ALL_W.slice(); renderGear(); });
