@@ -51,6 +51,7 @@ export function userDB(uid){
     set: (p, data) => setDoc(ref(p), data),
     del: p => deleteDoc(ref(p)),
     watchDoc: (p, cb, err) => onSnapshot(ref(p), snap => cb(snap.data()), err),
+    watchSelf: (cb, err) => onSnapshot(doc(fs, `users/${uid}`), snap => cb(snap.data()), err),
     watchCol: (c, cb, err) => onSnapshot(col(c), snap => cb(snap.docs.map(d => ({id:d.id, ...d.data()}))), err),
     batchSet: async entries => { const b = writeBatch(fs); entries.forEach(([p, data]) => b.set(ref(p), data)); await b.commit(); },
   };

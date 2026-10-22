@@ -18,6 +18,7 @@ export function userDB(uid){
   return {
     set: async (p, data) => { validate(data, p); store[ref(p)] = JSON.parse(JSON.stringify(data)); notify(ref(p)); },
     del: async p => { delete store[ref(p)]; notify(ref(p)); },
+    watchSelf: cb => { cb(store[`users/${uid}`]); return () => {}; },
     watchDoc: (p, cb) => { (docWatchers[ref(p)] = docWatchers[ref(p)] || []).push(cb); cb(store[ref(p)]); return () => {}; },
     watchCol: (c, cb) => { const k = `users/${uid}/${c}`; (colWatchers[k] = colWatchers[k] || []).push(cb); cb(Object.keys(store).filter(x => x.startsWith(k + "/")).map(x => ({id:x.split("/").pop(), ...store[x]}))); return () => {}; },
     batchSet: async entries => { for (const [p, d] of entries) { validate(d, p); store[ref(p)] = JSON.parse(JSON.stringify(d)); notify(ref(p)); } },

@@ -12,12 +12,14 @@ export function useData(uid){
   const [prog, setProg] = useState(PROGRAM_DEFAULTS);
   const [trainingDays, setTrainingDays] = useState([1, 2, 4, 5]);
   const [loaded, setLoaded] = useState(false);
+  const [profile, setProfile] = useState({});
   const [settingsSeen, setSettingsSeen] = useState({program:null, equipment:null, schedule:null});
   const [error, setError] = useState("");
   useEffect(() => {
     if (!db) return;
     setLoaded(false);
     const offs = [
+      db.watchSelf(d => setProfile(d || {}), () => {}),
       db.watchCol("sessions", s => { setSessions(s); setLoaded(true); }, e => setError("Lost connection to your log: " + (e.message || ""))),
       db.watchCol("bodylog", setBodylog, () => {}),
       db.watchDoc("settings/equipment", d => { setSettingsSeen(s => ({...s, equipment:!!d})); if (d && Array.isArray(d.dumbbells)) setGear(normalizeGear(d)); }, () => setSettingsSeen(s => ({...s, equipment:false}))),
@@ -63,5 +65,5 @@ export function useData(uid){
   };
   const settingsKnown = Object.values(settingsSeen).every(v => v !== null);
   const needsOnboarding = settingsKnown && !settingsSeen.program && !settingsSeen.equipment && sessions.length === 0;
-  return { sessions, bodylog, gear, prog, trainingDays, program, dbs, loaded: loaded && settingsKnown, needsOnboarding, error, api, today: today() };
+  return { sessions, bodylog, gear, prog, trainingDays, program, dbs, profile, isAdmin: profile.isAdmin === true, loaded: loaded && settingsKnown, needsOnboarding, error, api, today: today() };
 }

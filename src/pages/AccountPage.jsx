@@ -31,11 +31,11 @@ export function AccountPage({ data, auth, onBack, onManage, go, onReplayOnboardi
         <RowCard icon={<IconBubble name="push"/>} title="Exercises" sub={(prog.excluded || []).length ? `${prog.excluded.length} turned off` : "All available moves on"} right={<Pill ghost style={{padding:"9px 14px"}} onClick={() => go("exercises")}>Edit</Pill>}/>
         <RowCard icon={<IconBubble name="gear"/>} title="Equipment" sub={[(gear.equipment||[]).includes("dumbbells") && dbs.length ? `DB ${dbs[0]}–${dbs[dbs.length - 1]}` : "no dumbbells", gear.bench === "none" ? "no bench" : gear.bench + " bench", (gear.equipment||[]).includes("barbell") ? `bar to ${gear.barbell.max}` : null, (gear.equipment||[]).includes("kettlebell") && gear.kettlebells.length ? `KB ${gear.kettlebells.slice().sort((a,b)=>a-b).join("/")}` : null, (gear.equipment||[]).includes("cable") ? `cable to ${gear.cable.max}` : null].filter(Boolean).join(" · ")} right={<Pill ghost style={{padding:"9px 14px"}} onClick={() => go("gear")}>Edit</Pill>}/>
       </Card>
-      {auth.admin && <>
+      {(auth.admin || data.isAdmin) && <>
         <h2>Admin</h2>
         <Card style={{display:"grid", gap:10}}>
           <RowCard icon={<IconBubble name="bolt"/>} title="Run onboarding" sub="Walk the first-time flow again. Finishing it overwrites your goals, schedule and equipment; Exit keeps everything." right={<Pill ghost style={{padding:"9px 14px"}} onClick={onReplayOnboarding}>Start</Pill>}/>
-          <RowCard icon={<IconBubble name="user"/>} title="Admin account" sub={u.email}/>
+          <RowCard icon={<IconBubble name="user"/>} title="Admin account" sub={data.isAdmin ? `${u.email || "this account"} · isAdmin set in Firestore` : `${u.email} · listed in the app`}/>
         </Card>
       </>}
       <h2>About</h2>
