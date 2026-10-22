@@ -435,8 +435,13 @@ td.r,th.r{text-align:right}
 .ob-day{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;background:var(--card);border-radius:18px;padding:12px 14px}
 .ob-day .n{font-size:.72rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
 .ob-day b{font-weight:800}.ob-day small{color:var(--muted);font-size:.82rem}
-.ob-nav{display:flex;justify-content:space-between;align-items:center;gap:10px;padding-top:6px}
+.ob-nav{position:fixed;left:0;right:0;bottom:0;z-index:30;display:flex;justify-content:center;gap:10px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:12px calc(14px + env(safe-area-inset-bottom,0px));background:linear-gradient(to top,var(--bg) 70%,transparent)}
+.ob-nav>*{max-width:520px}
+.ob-nav .pill{box-shadow:0 14px 30px -12px rgba(21,48,58,.5)}
 .ob-nav .pill.big{width:auto;flex:1}
+.ob-nav .pill.ghost{flex:0 0 auto}
+#onboard{padding-bottom:calc(110px + env(safe-area-inset-bottom,0px))}
+.ob-wrap{min-height:auto}
 
 /* exercises page */
 .exrow{display:flex;align-items:center;gap:12px}
