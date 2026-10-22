@@ -120,12 +120,12 @@ export function WorkoutPage({ data, wo, date, onBack, onFocus }){
   };
   return (
     <section id="log">
-      <PageHeader left={<BackButton onClick={onBack}/>} title={`Day ${data.program.findIndex(d => d.key === wo.day.key) + 1} ${wo.day.name}`} sub={`${wo.day.focus} · ${fmtDate(date)}`} right={<IconButton name="expand" label="Focus mode" title="Focus mode" onClick={() => onFocus()}/>}/>
+      <PageHeader left={<BackButton onClick={onBack}/>} title={`Day ${data.program.findIndex(d => d.key === wo.day.key) + 1} ${wo.day.name}`} sub={`${wo.day.focus} · ${fmtDate(date)}`} />
       <StartCard wo={wo} timer={timer} nextText={nextText} onSkipRest={() => timer.stop()} onStart={() => { const p = wo.nextOpen(); if (p) wo.setPtr(p); onFocus(); }}/>
       <textarea className="note" value={note} onChange={e => setNote(e.target.value)} placeholder="Session notes: energy, sleep, what felt heavy (saved with Finish)"/>
       <div>{wo.day.ex.map((ex, ei) => <ExerciseCard key={ex[0] + ei} ex={ex} ei={ei} wo={wo} draft={draft} setDraft={setDraft} status={exStatus} onSave={(key, i, wv, rv) => persist(key, i, wv, rv, true)} onFocus={ei => { let si = 0; const ex = wo.day.ex[ei]; for (let k = 0; k < ex[2]; k++) if (!wo.savedSet(ex[0], k)) { si = k; break; } wo.setPtr({ei, si}); onFocus(); }}/>)}</div>
       <Status text={finishStatus.text} ok={finishStatus.ok}/>
-      <div className="fsave"><button className={`pill big ${finishStatus.ok && finishStatus.text ? "saved" : ""}`} onClick={finish}>{finishStatus.ok && finishStatus.text ? <><Icon name="tick" className="gicon"/><span>Session saved</span></> : wo.doneCount >= wo.total && wo.total ? "Finish session" : `Finish session · ${wo.doneCount}/${wo.total}`}</button></div>
+      <div className="fsave"><button className={`pill big ${finishStatus.ok && finishStatus.text ? "saved" : ""}`} onClick={finish}>{finishStatus.ok && finishStatus.text ? <><Icon name="tick" className="gicon"/><span>Session saved</span></> : "Finish session"}</button></div>
     </section>
   );
 }
