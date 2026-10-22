@@ -1,8 +1,23 @@
 # Stack
 
-A dumbbell upper-body training app: per-set logging with a rest timer, progression engine, schedule, progress charts, and equipment-aware plan rebuilding.
+Progressive dumbbell/home-gym training app. React + Vite, Firebase (Auth + Firestore), deployed to GitHub Pages by the workflow in `.github/workflows/deploy.yml`.
 
-Static site, no build step. Data lives in Firebase (Firestore) under `users/{uid}/…`; sign-in is anonymous by default with optional Google sign-in to sync across devices.
+## Structure
+- `src/lib/program.js` — exercise library + program generator (pure)
+- `src/lib/progression.js` — double-progression engine, strength summary (pure)
+- `src/lib/plan.js` — calendar projection from the log (pure)
+- `src/lib/dates.js` — date helpers
+- `src/lib/firebase.js` — auth + per-user Firestore API (`users/{uid}/…`)
+- `src/hooks/` — `useAuth`, `useData` (live Firestore state + writes), `useWorkout` (one workout's state), `useRestTimer`
+- `src/components/ui.jsx` — shared primitives (Card, Pill, PageHeader, BigInput, Segmented, Toggle, Ring, icons, logo)
+- `src/pages/` — Login, Home, Workout (+NowCard), FocusMode, Schedule, Progress, Setup, Account
+- `src/styles.css` — design tokens and component styles
 
-## Deploy
-Served from GitHub Pages (main branch, root). Firebase config is in `index.html`; security rules are in `firestore.rules` (paste into Firestore → Rules).
+## Develop
+```
+npm install
+npm run dev        # local
+npm test           # generator + progression unit tests
+VITE_MOCK=1 npm run build   # build against the in-memory Firebase mock (for e2e)
+```
+Firestore rules: `firestore.rules`.

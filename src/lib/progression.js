@@ -1,0 +1,82 @@
+// Double-progression engine with stall and fatigue handling. Pure: takes history, returns targets.
+import { BODYWEIGHT_EX, CORE_BW, TIMED, LIB_BY_KEY } from "./program.js";
+
+export const e1rm = (w, r) => w * (1 + r / 30);
+export function parseRange(r){ if (r === "max") return null; const m = r.split("–").map(Number); return {lo:m[0], hi:m[1] || m[0]}; }
+
+export function historyFor(sessions, exKey){
+  return sessions.filter(s => s.sets[exKey] && s.sets[exKey].some(x => x.r))
+    .sort((a, b) => b.date.localeCompare(a.date))
+    .map(s => ({date:s.date, sets:s.sets[exKey].filter(x => x.r)}));
+}
+
+// dbs: sorted list of available dumbbells
+export function suggest(ex, sessions, dbs){
+  const [key, , n, rangeStr, startW] = ex;
+  const range = parseRange(rangeStr);
+  const hist = historyFor(sessions, key);
+  const fill = v => Array.from({length:n}, () => v);
+  const isDB = !LIB_BY_KEY[key] || LIB_BY_KEY[key].equip === "db";
+  const nextDB = w => { if (!isDB) return w + 5; for (const x of dbs) if (x > w) return x; return null; };
+  const prevDB = w => { if (!isDB) return Math.max(5, w - 10); let p = null; for (const x of dbs) if (x < w) p = x; return p ?? (dbs[0] ?? w); };
+  const maxDB = dbs.length ? dbs[dbs.length - 1] : 0;
+
+  if (BODYWEIGHT_EX.has(key)) {
+    const ab = CORE_BW.has(key), timed = TIMED.has(key);
+    if (!hist.length) return ab
+      ? {w:0, reps:fill(range.lo), why: timed ? `Hold ${range.lo} seconds per side. Add 5 seconds each week.` : `Start at ${range.lo} slow reps. No swinging.`}
+      : {w:0, reps:fill(null), why:"Do as many clean reps as you can each set. Partial reps don't count."};
+    const last = hist[0].sets.map(s => s.r);
+    if (ab) {
+      if (last.every(r => r >= range.hi)) return {w:0, reps:fill(range.hi), why: timed ? "Holding the top of the range. Add a dumbbell on the hip or raise the top leg." : key === "knee_raise" ? "Top of the range on all sets. Move to hanging leg raises, or hold a dumbbell between your feet." : "Top of the range on all sets. Slow the lowering to 3 seconds or hold a light dumbbell between your feet."};
+      return {w:0, reps:last.map(r => Math.min(range.hi, r + (timed ? 5 : 1))), why:`Last time ${last.join(", ")}. Add ${timed ? "5 seconds" : "one rep"} per set.`};
+    }
+    const total = last.reduce((a, b) => a + b, 0);
+    if (total >= 40) return {w:0, reps:last.slice(), why:`${total} total reps last time. Add weight: hold a 10 lb dumbbell between your feet and rebuild.`};
+    const reps = last.map((r, i) => i === 0 ? r + 1 : r);
+    while (reps.length < n) reps.push(Math.max(1, last[last.length - 1] - 1));
+    return {w:0, reps, why:`Last time ${last.join(", ")}. Add one rep to the first set and hold the rest.`};
+  }
+
+  if (!hist.length) return {w:startW, reps:fill(range.lo), why:`Starting point: ${startW} lb for ${range.lo} reps. If set 1 feels like 4+ reps in reserve, go up a dumbbell now.`};
+  const last = hist[0];
+  const lastW = Math.max(...last.sets.map(s => s.w || 0));
+  const lastReps = last.sets.map(s => s.r);
+  const totalReps = r => r.reduce((a, b) => a + b, 0);
+  const allHitTop = lastReps.length >= n && lastReps.every(r => r >= range.hi);
+  const fatigue = lastReps.length > 1 && (lastReps[0] - lastReps[lastReps.length - 1]) >= 4;
+  const prevSame = hist.filter(h => Math.max(...h.sets.map(s => s.w || 0)) === lastW);
+  const stalled = prevSame.length >= 3 &&
+    totalReps(prevSame[0].sets.map(s => s.r)) <= totalReps(prevSame[1].sets.map(s => s.r)) &&
+    totalReps(prevSame[1].sets.map(s => s.r)) <= totalReps(prevSame[2].sets.map(s => s.r));
+  if (allHitTop) {
+    const up = nextDB(lastW);
+    if (up) return {w:up, reps:fill(range.lo), why:`You hit ${range.hi}+ on every set at ${lastW} lb. Weight goes up to ${up}; reps reset to ${range.lo}.`};
+    return {w:lastW, reps:lastReps.map(r => r + 1), why:`Maxed out your ${maxDB}s. Add a rep per set, lower for 3 seconds, pause at the bottom. Time to buy heavier dumbbells.`};
+  }
+  if (stalled) { const w = prevDB(lastW); return {w, reps:fill(range.hi), why:`Three sessions at ${lastW} lb with no rep gain. Drop to ${w} lb, own the top of the range, then climb back.`}; }
+  const reps = lastReps.map(r => Math.min(range.hi, r + 1));
+  while (reps.length < n) reps.push(range.lo);
+  const why = fatigue
+    ? `Reps fell from ${lastReps[0]} to ${lastReps[lastReps.length - 1]} last time. Same weight, +1 rep, and rest a full 2–3 minutes between sets.`
+    : `Last time ${lastReps.join(", ")} at ${lastW} lb. Same weight, add one rep per set. Hit ${range.hi} on all sets and the weight goes up.`;
+  return {w:lastW, reps, why};
+}
+
+export function strengthSummary(sessions, names){
+  const byEx = {};
+  sessions.slice().sort((a, b) => a.date.localeCompare(b.date)).forEach(s => {
+    for (const k in s.sets) {
+      const score = x => BODYWEIGHT_EX.has(k) ? x.r : e1rm(x.w, x.r);
+      const top = s.sets[k].filter(x => x.r).reduce((best, x) => (!best || score(x) > score(best)) ? x : best, null);
+      if (!top) continue;
+      byEx[k] = byEx[k] || {first:{...top, date:s.date}};
+      byEx[k].last = {...top, date:s.date};
+    }
+  });
+  const score = (k, t) => BODYWEIGHT_EX.has(k) ? t.r : e1rm(t.w, t.r);
+  return Object.keys(byEx).map(k => { const f = byEx[k].first, l = byEx[k].last; const same = f.date === l.date;
+    return {k, name:names[k] || k, first:f, last:l, delta: same ? 0 : score(k, l) - score(k, f), pct: same ? 0 : Math.round((score(k, l) - score(k, f)) / score(k, f) * 100)}; });
+}
+
+export const REST = { compound:150, iso:90, last:120 };

@@ -1,12 +1,14 @@
-// Stack program generator.
+// Stack program generator (pure).
 // Builds PROGRAM (an array of training days) from the user's goals, schedule and equipment.
 // Nothing here is shown as a list in the app; the workout page simply reflects what this produces.
 
 // ---------- exercise library ----------
 // key, name, group, region (push|pull|legs|core), kind (compound|iso), needs (equipment tags),
 // bw (bodyweight), start (lb per hand for a 150 lb lifter with some experience), img, q (video search), g (guide), pri (lower = preferred)
-const EX = r => Object.assign({needs:[], unless:[], bw:false, start:0, pri:5, timed:false}, r);
-const LIB = [
+// equip: db (per-hand dumbbell weight, stepped through the dumbbells you own) · bb (total bar weight, 5 lb steps)
+// kb (kettlebell) · cable · band · bw (bodyweight). needs: equipment tags that must be present; unless: tags that make it redundant.
+const EX = r => Object.assign({needs:[], unless:[], bw:false, start:0, pri:5, timed:false, equip:"db"}, r);
+export const LIB = [
   // push: chest
   EX({key:"flat_press",   name:"Flat DB press",           group:"chest", region:"push", kind:"compound", needs:["bench"],         start:35, img:"press",   q:"dumbbell bench press form", g:"https://exrx.net/WeightExercises/PectoralSternal/DBBenchPress", pri:1}),
   EX({key:"floor_press", unless:["bench"],  name:"DB floor press",          group:"chest", region:"push", kind:"compound",                          start:35, img:"press",   q:"dumbbell floor press form", g:"https://exrx.net/Lists/ExList/ChestWt", pri:3}),
@@ -65,8 +67,52 @@ const LIB = [
   EX({key:"side_bend",    name:"DB side bend (per side)", group:"obliques", region:"core", kind:"iso",                            start:25, img:"sideplank",q:"dumbbell side bend form", g:"https://exrx.net/Lists/ExList/WaistWt", pri:2}),
   EX({key:"plank",        name:"Plank (seconds)",         group:"abs", region:"core", kind:"iso", bw:true, timed:true,            img:"sideplank",q:"plank form", g:"https://exrx.net/Lists/ExList/WaistWt", pri:3}),
   EX({key:"russian_twist",name:"Russian twist (per side)",group:"obliques", region:"core", kind:"iso",                            start:15, img:"abs",     q:"dumbbell russian twist form", g:"https://exrx.net/Lists/ExList/WaistWt", pri:3}),
+  // barbell (needs plates; rack for squat/bench)
+  EX({key:"bb_bench",     name:"Barbell bench press",     group:"chest", region:"push", kind:"compound", needs:["barbell","rack","bench"], equip:"bb", start:95, img:"press", q:"barbell bench press form", g:"https://exrx.net/WeightExercises/PectoralSternal/BBBenchPress", pri:0}),
+  EX({key:"bb_incline",   name:"Barbell incline press",   group:"chest_upper", region:"push", kind:"compound", needs:["barbell","rack","incline"], equip:"bb", start:75, img:"incline", q:"incline barbell bench press form", g:"https://exrx.net/WeightExercises/PectoralClavicular/BBInclineBenchPress", pri:1}),
+  EX({key:"bb_ohp",       name:"Barbell overhead press",  group:"shoulders", region:"push", kind:"compound", needs:["barbell"], equip:"bb", start:65, img:"shoulder", q:"barbell overhead press form", g:"https://exrx.net/WeightExercises/DeltoidAnterior/BBMilitaryPress", pri:0}),
+  EX({key:"bb_row",       name:"Barbell row",             group:"back", region:"pull", kind:"compound", needs:["barbell"], equip:"bb", start:95, img:"row", q:"barbell row form", g:"https://exrx.net/WeightExercises/BackGeneral/BBBentOverRow", pri:0}),
+  EX({key:"bb_curl",      name:"Barbell curl",            group:"biceps", region:"pull", kind:"iso", needs:["barbell"], equip:"bb", start:45, img:"curl", q:"barbell curl form", g:"https://exrx.net/WeightExercises/Biceps/BBCurl", pri:1}),
+  EX({key:"bb_squat",     name:"Barbell back squat",      group:"quads", region:"legs", kind:"compound", needs:["barbell","rack"], equip:"bb", start:115, img:"squat", q:"barbell back squat form", g:"https://exrx.net/WeightExercises/Quadriceps/BBSquat", pri:0}),
+  EX({key:"bb_deadlift",  name:"Barbell deadlift",        group:"hams", region:"legs", kind:"compound", needs:["barbell"], equip:"bb", start:135, img:"hinge", q:"barbell deadlift form", g:"https://exrx.net/WeightExercises/ErectorSpinae/BBDeadlift", pri:0}),
+  EX({key:"bb_rdl",       name:"Barbell Romanian deadlift",group:"hams", region:"legs", kind:"compound", needs:["barbell"], equip:"bb", start:95, img:"hinge", q:"barbell romanian deadlift form", g:"https://exrx.net/WeightExercises/Hamstrings/BBStraightLegDeadlift", pri:1}),
+  EX({key:"bb_hip_thrust",name:"Barbell hip thrust",      group:"glutes", region:"legs", kind:"compound", needs:["barbell","bench"], equip:"bb", start:95, img:"hinge", q:"barbell hip thrust form", g:"https://exrx.net/Lists/ExList/HipWt", pri:0}),
+  EX({key:"ez_curl",      name:"EZ-bar curl",             group:"biceps", region:"pull", kind:"iso", needs:["ezbar"], equip:"bb", start:40, img:"curl", q:"ez bar curl form", g:"https://exrx.net/Lists/ExList/ArmWt", pri:1}),
+  EX({key:"ez_skull",     name:"EZ-bar skull-crushers",   group:"triceps", region:"push", kind:"iso", needs:["ezbar","bench"], equip:"bb", start:40, img:"tri", q:"ez bar skull crusher form", g:"https://exrx.net/Lists/ExList/ArmWt", pri:1}),
+  // kettlebell
+  EX({key:"kb_swing",     name:"Kettlebell swing",        group:"hams", region:"legs", kind:"compound", needs:["kettlebell"], equip:"kb", start:35, img:"hinge", q:"kettlebell swing form", g:"https://exrx.net/WeightExercises/GluteusMaximus/KBSwing", pri:2}),
+  EX({key:"kb_goblet",    name:"Kettlebell goblet squat", group:"quads", region:"legs", kind:"compound", needs:["kettlebell"], equip:"kb", start:35, img:"squat", q:"kettlebell goblet squat form", g:"https://exrx.net/Lists/ExList/ThighWt", pri:2}),
+  EX({key:"kb_press",     name:"Kettlebell press",        group:"shoulders", region:"push", kind:"compound", needs:["kettlebell"], equip:"kb", start:25, img:"shoulder", q:"kettlebell press form", g:"https://exrx.net/Lists/ExList/ShoulderWt", pri:3}),
+  // dip station / parallel bars
+  EX({key:"dip",          name:"Dips",                    group:"chest", region:"push", kind:"compound", needs:["dipbars"], bw:true, equip:"bw", img:"press", q:"dip form", g:"https://exrx.net/WeightExercises/PectoralSternal/BWChestDip", pri:1}),
+  EX({key:"dip_knee_raise",name:"Captain's chair knee raises",group:"abs_lower", region:"core", kind:"iso", needs:["dipbars"], bw:true, equip:"bw", img:"abs", q:"captains chair knee raise form", g:"https://exrx.net/Lists/ExList/WaistWt", pri:2}),
+  // cable machine
+  EX({key:"lat_pulldown", name:"Lat pulldown",            group:"lats", region:"pull", kind:"compound", needs:["cable"], equip:"cable", start:80, img:"pull", q:"lat pulldown form", g:"https://exrx.net/WeightExercises/LatissimusDorsi/CBPulldown", pri:1}),
+  EX({key:"cable_row",    name:"Seated cable row",        group:"back", region:"pull", kind:"compound", needs:["cable"], equip:"cable", start:80, img:"row", q:"seated cable row form", g:"https://exrx.net/WeightExercises/BackGeneral/CBSeatedRow", pri:1}),
+  EX({key:"face_pull",    name:"Face pulls",              group:"rear_delts", region:"pull", kind:"iso", needs:["cable"], equip:"cable", start:30, img:"raise", q:"face pull form", g:"https://exrx.net/WeightExercises/DeltoidPosterior/CBRearDeltRow", pri:0}),
+  EX({key:"pushdown",     name:"Triceps pushdown",        group:"triceps", region:"push", kind:"iso", needs:["cable"], equip:"cable", start:40, img:"tri", q:"triceps pushdown form", g:"https://exrx.net/WeightExercises/Triceps/CBPushdown", pri:0}),
+  EX({key:"cable_curl",   name:"Cable curl",              group:"biceps", region:"pull", kind:"iso", needs:["cable"], equip:"cable", start:40, img:"curl", q:"cable curl form", g:"https://exrx.net/Lists/ExList/ArmWt", pri:3}),
+  EX({key:"cable_crunch", name:"Cable crunch",            group:"abs", region:"core", kind:"iso", needs:["cable"], equip:"cable", start:50, img:"abs", q:"cable crunch form", g:"https://exrx.net/WeightExercises/RectusAbdominis/CBKneelingCrunch", pri:0}),
+  // bands
+  EX({key:"band_pullapart",name:"Band pull-aparts",       group:"rear_delts", region:"pull", kind:"iso", needs:["bands"], equip:"band", start:0, bw:true, img:"raise", q:"band pull apart form", g:"https://exrx.net/Lists/ExList/ShoulderWt", pri:2}),
+  EX({key:"band_facepull", name:"Band face pulls",        group:"rear_delts", region:"pull", kind:"iso", needs:["bands"], unless:["cable"], equip:"band", start:0, bw:true, img:"raise", q:"band face pull form", g:"https://exrx.net/Lists/ExList/ShoulderWt", pri:1}),
+  EX({key:"band_pushdown", name:"Band triceps pushdown",  group:"triceps", region:"push", kind:"iso", needs:["bands"], unless:["cable"], equip:"band", start:0, bw:true, img:"tri", q:"band triceps pushdown form", g:"https://exrx.net/Lists/ExList/ArmWt", pri:3}),
+  // ab wheel
+  EX({key:"ab_rollout",   name:"Ab wheel rollouts",       group:"abs", region:"core", kind:"iso", needs:["abwheel"], bw:true, equip:"bw", img:"abs", q:"ab wheel rollout form", g:"https://exrx.net/WeightExercises/RectusAbdominis/BWRollout", pri:0}),
 ];
-const LIB_BY_KEY = Object.fromEntries(LIB.map(e => [e.key, e]));
+// Equipment the Setup page can toggle. Dumbbells and bench type are chosen separately.
+export const EQUIPMENT = [
+  {key:"bar",        name:"Pull-up bar",          sub:"Chin-ups, pull-ups, hanging ab work"},
+  {key:"barbell",    name:"Barbell & plates",     sub:"Rows, presses, deadlifts; big lifts in 5 lb steps"},
+  {key:"rack",       name:"Squat rack",           sub:"Unlocks barbell squats and bench press"},
+  {key:"ezbar",      name:"EZ curl bar",          sub:"Curls and skull-crushers"},
+  {key:"kettlebell", name:"Kettlebells",          sub:"Swings, goblet squats, presses"},
+  {key:"dipbars",    name:"Dip station",          sub:"Dips and captain's chair raises"},
+  {key:"cable",      name:"Cable machine",        sub:"Pulldowns, rows, face pulls, pushdowns"},
+  {key:"bands",      name:"Resistance bands",     sub:"Pull-aparts, face pulls, pushdowns"},
+  {key:"abwheel",    name:"Ab wheel",             sub:"Rollouts"},
+];
+export const LIB_BY_KEY = Object.fromEntries(LIB.map(e => [e.key, e]));
 
 // ---------- day templates ----------
 // Each day is a list of slots; a slot names acceptable muscle groups in order of preference.
@@ -90,7 +136,7 @@ const DAY_META = {
 };
 
 // Pick the split from how many days you train and what you want to work.
-function chooseSplit(days, focus){
+export function chooseSplit(days, focus){
   const up = focus.includes("upper"), lo = focus.includes("lower"), core = focus.includes("core");
   let split;
   if (up && lo) split = {2:["full","full"],3:["full","full","full"],4:["upper","legs","upper","legs"],5:["upper","legs","upper","legs","full"],6:["push","pull","legs","push","pull","legs"]}[days];
@@ -102,12 +148,14 @@ function chooseSplit(days, focus){
 }
 
 // ---------- builder ----------
-function buildProgram(opts){
+export function buildProgram(opts){
   const {gear, prog, trainingDays} = opts;
   const days = Math.min(6, Math.max(1, trainingDays.length || 4));
   const focus = prog.focus && prog.focus.length ? prog.focus : ["upper","core"];
-  const have = new Set(); if (gear.bar) have.add("bar"); if (gear.bench !== "none") have.add("bench"); if (gear.bench === "incline") have.add("incline");
-  const ok = e => e.needs.every(n => have.has(n)) && !e.unless.some(n => have.has(n)) && (e.bw || gear.dumbbells.length);
+  const have = new Set(gear.equipment || (gear.bar ? ["bar"] : []));
+  if (gear.bar) have.add("bar");
+  if (gear.bench !== "none") have.add("bench"); if (gear.bench === "incline") have.add("incline");
+  const ok = e => e.needs.every(n => have.has(n)) && !e.unless.some(n => have.has(n)) && (e.bw || e.equip !== "db" || gear.dumbbells.length);
   const rep = {size:{compound:"8–12", iso:"12–15"}, strength:{compound:"5–8", iso:"8–12"}, endurance:{compound:"12–15", iso:"15–20"}}[prog.goal || "size"];
   const liftsPer = {short:4, standard:6, long:8}[prog.length || "standard"];
   const setsFor = e => (prog.goal === "strength" && e.kind === "compound") ? 4 : e.kind === "compound" ? 4 : 3;
@@ -115,7 +163,7 @@ function buildProgram(opts){
   const bwMult = Math.pow((prog.bodyweight || 150) / 150, 0.7);
   const dbl = gear.dumbbells.slice().sort((a,b)=>a-b);
   const nearest = w => { if (!dbl.length) return w; let best = dbl[0]; for (const x of dbl) if (x <= w) best = x; return best; };
-  const startFor = e => e.bw ? 0 : nearest(Math.max(5, Math.round(e.start * expMult * bwMult / 5) * 5));
+  const startFor = e => { if (e.bw) return 0; const w = Math.max(5, Math.round(e.start * expMult * bwMult / 5) * 5); return e.equip === "db" ? nearest(w) : w; };
   const repsFor = e => e.bw && e.region !== "core" ? "max" : e.timed ? "20–45" : e.region === "core" && e.bw ? "10–15" : rep[e.kind];
   const toRow = (e, sets) => [e.key, e.name, sets || setsFor(e), repsFor(e), startFor(e), e.q, e.g];
 
@@ -141,4 +189,16 @@ function buildProgram(opts){
   return program;
 }
 
-const PROGRAM_DEFAULTS = {focus:["upper","core"], goal:"size", length:"standard", experience:"some", bodyweight:150};
+export const PROGRAM_DEFAULTS = {focus:["upper","core"], goal:"size", length:"standard", experience:"some", bodyweight:150};
+
+export const BODYWEIGHT_EX = new Set(LIB.filter(e => e.bw).map(e => e.key));
+export const CORE_BW = new Set(LIB.filter(e => e.bw && e.region === "core").map(e => e.key));
+export const TIMED = new Set(LIB.filter(e => e.timed).map(e => e.key));
+export const COMPOUND = new Set(LIB.filter(e => e.kind === "compound" && e.region !== "core").map(e => e.key));
+export const EX_IMG = Object.fromEntries(LIB.map(e => [e.key, e.img]));
+export const exImg = key => `${(typeof import.meta !== "undefined" && import.meta.env && import.meta.env.BASE_URL) || "/"}img/ex-${EX_IMG[key] || "press"}.png`;
+export const howTo = q => "https://www.youtube.com/results?search_query=" + encodeURIComponent("how to " + q);
+export const GEAR_DEFAULTS = {dumbbells:[10,15,20,25,30,35,40,45,50], bar:true, bench:"incline", equipment:["bar"]};
+// Stored session plans are rows of objects (Firestore forbids nested arrays); in code they are arrays.
+export const planToStore = ex => ex.map(e => Array.isArray(e) ? {key:e[0], name:e[1], sets:e[2], reps:e[3], w:e[4], q:e[5], g:e[6]} : e);
+export const planFromStore = pl => (pl || []).map(e => Array.isArray(e) ? e : [e.key, e.name, e.sets, e.reps, e.w, e.q, e.g]);
