@@ -246,6 +246,14 @@ textarea{border-radius:18px;line-height:1.4;font-weight:500}
 .gplan b{display:block;margin-bottom:6px}
 .gplan ul{margin:0;padding-left:18px;font-size:.9rem;color:var(--ink)}
 .gplan li.sub{color:var(--teal)}
+/* splash */
+#splash{position:fixed;inset:0;z-index:50;background:var(--bg);display:grid;place-items:center;transition:opacity .25s}
+#splash.off{opacity:0;pointer-events:none}
+.splash-in{display:flex;flex-direction:column;align-items:center;gap:12px;font-weight:800;font-size:1.3rem}
+.splash-in .logo{width:64px;height:64px;box-shadow:none}
+.spin{width:22px;height:22px;border-radius:50%;border:3px solid var(--line);border-top-color:var(--teal);animation:spin .8s linear infinite;margin-top:6px}
+@keyframes spin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.spin{animation:none}}
 /* login */
 #login{position:fixed;inset:0;z-index:40;background:var(--bg);overflow:auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:calc(24px + env(safe-area-inset-top,0px)) calc(24px + env(safe-area-inset-bottom,0px))}
 #login::after{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;background:radial-gradient(60vw 50vh at 85% 0%,var(--glow1) 0%,transparent 72%),radial-gradient(60vw 50vh at 0% 100%,var(--glow2) 0%,transparent 72%),var(--bg)}
@@ -353,6 +361,7 @@ td.r,th.r{text-align:right}
 </style>
 </head>
 <body>
+<div id="splash" aria-hidden="true"><div class="splash-in"><span class="logo"><svg viewBox="0 0 48 48" aria-hidden="true"><defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#1c5467"/><stop offset="1" stop-color="#2c7f98"/></linearGradient></defs><circle cx="24" cy="24" r="24" fill="url(#lg)"/><rect x="12" y="30" width="24" height="6" rx="3" fill="#ffffff" opacity=".55"/><rect x="9" y="22" width="30" height="6" rx="3" fill="#ffffff" opacity=".8"/><rect x="6" y="14" width="36" height="6" rx="3" fill="#ffd27a"/><circle cx="42" cy="17" r="4" fill="#f6a33e"/></svg></span><b>Stack</b><i class="spin"></i></div></div>
 
 <div class="wrap">
 
@@ -1308,6 +1317,7 @@ function showLogin(manage){
   $("login-p").textContent = g ? "Your log syncs to every device you sign in on." : "Log every set, rest on a timer, and let the plan push the weights up for you.";
   $("login-status").textContent = "";
 }
+function hideSplash(){ const el=$("splash"); if(!el) return; el.classList.add("off"); setTimeout(()=>el.remove(), 300); }
 function hideLogin(){ $("login").hidden = true; document.body.style.overflow = ""; }
 function renderAccount(u){
   const g = u && !u.isAnonymous;
@@ -1326,14 +1336,15 @@ function renderAccount(u){
     let skipped = false; try { skipped = localStorage.getItem(SKIP_KEY) === "1"; } catch(e) {}
     if (!u || (u.isAnonymous && !skipped)) {
       storageState("");
-      await new Promise(res => { loginResolve = res; showLogin(false); });
+      await new Promise(res => { loginResolve = res; showLogin(false); hideSplash(); });
       u = auth.currentUser;
       if (!u) u = (await auth.signInAnonymously()).user;
     }
-    uid = u.uid; renderAccount(u); bindData(); storageState(""); hideLogin();
+    uid = u.uid; renderAccount(u); bindData(); storageState(""); hideLogin(); hideSplash();
     auth.onAuthStateChanged(x => { if (x && x.uid !== uid) { uid = x.uid; bindData(); } if (x) renderAccount(x); });
   } catch(e) {
     storageState("Couldn't connect to Firebase: " + (e && e.message || e) + ". Check the Firebase config and that this domain is authorized.");
+    hideSplash();
   }
 })();
 async function googleSignIn(){
@@ -1383,6 +1394,7 @@ $("acct-import").addEventListener("click", async () => {
     setStatus("acct-status", `Imported ${Object.keys(SEED.sessions||{}).length} session(s) and your settings.`, true);
   } catch(e) { setStatus("acct-status", "Import failed: " + e.message); }
 });
+setTimeout(hideSplash, 8000);
 if ("serviceWorker" in navigator) { window.addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(()=>{})); }
 
 </script>
