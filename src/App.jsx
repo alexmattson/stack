@@ -4,6 +4,7 @@ import { useData } from "./hooks/useData.js";
 import { useWorkout } from "./hooks/useWorkout.js";
 import { Splash } from "./components/Splash.jsx";
 import { NavRail } from "./components/NavRail.jsx";
+import { PullToRefresh } from "./components/PullToRefresh.jsx";
 import { LoginScreen } from "./pages/LoginScreen.jsx";
 import { HomePage } from "./pages/HomePage.jsx";
 import { WorkoutPage } from "./pages/WorkoutPage.jsx";
@@ -40,6 +41,7 @@ function Shell({ auth }){
   if ((data.needsOnboarding && !onboarded) || replay) return <Onboarding data={data} replay={replay} onDone={() => { setOnboarded(true); setReplay(false); nav.jump("home"); }} onCancel={() => setReplay(false)}/>;
   return (
     <>
+      <PullToRefresh/>
       <div className="wrap">
         {nav.tab === "home" && <HomePage data={data} onOpenWorkout={openWorkout}/>}
         {nav.tab === "log" && <WorkoutPage data={data} wo={wo} date={wsel.date} onBack={nav.back} onFocus={() => setFocus(true)}/>}

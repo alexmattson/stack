@@ -458,3 +458,11 @@ td.r,th.r{text-align:right}
 /* onboarding welcome art: a fixed-height stage so nothing spills into the headline */
 .ob-center .login-art{flex:none;height:min(44vh,380px);min-height:220px;margin:8px auto 6px}
 .ob-center{justify-content:center;gap:8px;min-height:calc(100vh - 190px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px))}
+
+/* pull to refresh */
+.ptr{overflow:hidden;display:flex;align-items:flex-end;justify-content:center;transition:height .15s ease-out}
+.ptr.loading{transition:height .2s}
+.ptr-in{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:.82rem;font-weight:600;padding-bottom:10px}
+.ptr .spin{margin:0;width:18px;height:18px;border-width:2.5px}
+.ptr.ready .spin{border-top-color:var(--good)}
+html{overscroll-behavior-y:none}
