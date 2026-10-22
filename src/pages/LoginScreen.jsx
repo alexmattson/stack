@@ -13,11 +13,10 @@ export function LoginScreen({ auth, manage, onBack }){
         {g && <div className="login-acct"><IconBubble name="user"/><div className="grow"><b>{u.displayName || u.email || "Signed in"}</b><small>{u.email || "Google account"}</small></div></div>}
         <div className="login-btns">
           {!g && <Pill big onClick={auth.google}><Icon name="google" className="gicon"/><span>Continue with Google</span></Pill>}
-          {!g && <Pill big ghost onClick={auth.skip}>Skip for now</Pill>}
           {g && <Pill big ghost onClick={auth.logout}>Sign out</Pill>}
           {manage && <button className="link" onClick={onBack}>Back to the app</button>}
         </div>
-        {!g && <p className="muted login-foot">Sign in to keep your progress everywhere you train.</p>}
+        {!g && <p className="muted login-foot">Your progress follows you everywhere you train.</p>}
         <div className="status">{auth.error}</div>
       </div>
     </section>

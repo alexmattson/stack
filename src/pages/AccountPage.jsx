@@ -15,7 +15,7 @@ export function AccountPage({ data, auth, onBack, onManage, go, onReplayOnboardi
       <Card tone="aqua" style={{display:"grid", gap:12}}>
         <RowCard icon={<IconBubble name="user"/>} title={g ? (u.displayName || u.email || "Signed in") : "Device only"} sub={g ? `${u.email || "Google account"} · progress follows you everywhere.` : "Saved on this device. Sign in to keep it everywhere you train."}/>
         {!g && <Pill big onClick={auth.google}>Continue with Google</Pill>}
-        {g && <Pill big ghost onClick={onManage}>Sign out</Pill>}
+        {g && <Pill big ghost onClick={auth.logout}>Sign out</Pill>}
         <Status text={auth.error}/>
       </Card>
       <h2>Your data</h2>
