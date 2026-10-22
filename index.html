@@ -761,7 +761,7 @@ function renderHome(){
   const plan = buildPlan(new Date().getFullYear(), new Date().getMonth());
   let strip = "";
   for (let o=-3;o<=3;o++){ const d=new Date(); d.setDate(d.getDate()+o); const k=iso(d); const p=plan[k];
-    const ss = curSessionFor(k); const full = ss && (()=>{ const di=PROGRAM.findIndex(x=>x.key===ss.day); const tot=(ss.plan||(PROGRAM[di]?PROGRAM[di].ex:[])).reduce((a,e)=>a+e[2],0); return Object.values(ss.sets).reduce((a,arr)=>a+arr.filter(x=>x.r).length,0) >= tot; })();
+    const ss = curSessionFor(k); const full = ss && (()=>{ const di=PROGRAM.findIndex(x=>x.key===ss.day); const tot=(ss.plan?planFromStore(ss.plan):(PROGRAM[di]?PROGRAM[di].ex:[])).reduce((a,e)=>a+e[2],0); return Object.values(ss.sets).reduce((a,arr)=>a+arr.filter(x=>x.r).length,0) >= tot; })();
     const cls = (k===homeDate?"today":"") + (p && (p.kind==="plan"||p.kind==="done") ? " train" : "") + (full ? " done" : "");
     strip += `<div class="${cls}" data-k="${k}" role="button" tabindex="0"><small>${DOW[d.getDay()]}</small>${d.getDate()}</div>`; }
   $("strip").innerHTML = strip;
@@ -769,7 +769,7 @@ function renderHome(){
   // hero for the selected date
   const sel = homeDate; const cur = curSessionFor(sel); const p = plan[sel] || {};
   const ni = cur ? PROGRAM.findIndex(x=>x.key===cur.day) : plannedDayFor(sel);
-  const dayP = cur && Array.isArray(cur.plan) && cur.plan.length ? {name:cur.planName||PROGRAM[ni].name, focus:cur.planFocus||PROGRAM[ni].focus, ex:cur.plan} : PROGRAM[ni];
+  const dayP = cur && Array.isArray(cur.plan) && cur.plan.length ? {name:cur.planName||PROGRAM[ni].name, focus:cur.planFocus||PROGRAM[ni].focus, ex:planFromStore(cur.plan)} : PROGRAM[ni];
   const isTrain = p.kind==="plan" || p.kind==="done" || p.kind==="miss";
   const total = dayP.ex.reduce((a,e)=>a+e[2],0);
   const done = cur ? Object.values(cur.sets).reduce((a,arr)=>a+arr.filter(x=>x.r).length,0) : 0;
@@ -802,7 +802,7 @@ function renderHome(){
   $("h-up").innerHTML = st.length ? `${ups}<small>of ${st.length}</small>` : "—";
   // recent
   const rec = sessions.slice().sort((a,b)=>b.date.localeCompare(a.date)).slice(0,3);
-  $("h-recent").innerHTML = rec.length ? rec.map(s => { const di=PROGRAM.findIndex(d=>d.key===s.day); const n=Object.values(s.sets).reduce((a,arr)=>a+arr.filter(x=>x.r).length,0); const tot=(s.plan||(PROGRAM[di]?PROGRAM[di].ex:[])).reduce((a,e)=>a+e[2],0)||n; const p=Math.min(100,Math.round(n/tot*100));
+  $("h-recent").innerHTML = rec.length ? rec.map(s => { const di=PROGRAM.findIndex(d=>d.key===s.day); const n=Object.values(s.sets).reduce((a,arr)=>a+arr.filter(x=>x.r).length,0); const tot=(s.plan?planFromStore(s.plan):(PROGRAM[di]?PROGRAM[di].ex:[])).reduce((a,e)=>a+e[2],0)||n; const p=Math.min(100,Math.round(n/tot*100));
     return `<div class="card rowcard" style="margin-bottom:8px"><span class="icon">${di%2===0?ICON_PUSH:ICON_PULL}</span><div class="grow"><b>Day ${di+1} ${PROGRAM[di]?PROGRAM[di].name:""}</b><small>${fmtDate(s.date)} · ${n} sets</small></div><span class="ring" style="--p:${p}"><span>${p}%</span></span></div>`; }).join("")
     : `<div class="card rowcard"><img src="img/empty.png" alt="" style="width:64px;height:auto"><div class="grow muted">No sessions yet. Tap Start and your first workout will show up here.</div></div>`;
 }
@@ -837,10 +837,12 @@ const curSessionFor = date => sessions.filter(s => s.date===date).sort((a,b)=>(b
 let fptr = {ei:0, si:0};
 // The exercise list for the session being viewed. A session stores a copy of its plan when it is
 // created, so past workouts keep their lifts and targets even after the equipment or program changes.
+const planToStore = ex => ex.map(e => Array.isArray(e) ? {key:e[0], name:e[1], sets:e[2], reps:e[3], w:e[4], q:e[5], g:e[6]} : e);
+const planFromStore = pl => (pl||[]).map(e => Array.isArray(e) ? e : [e.key, e.name, e.sets, e.reps, e.w, e.q, e.g]);
 function curDay(){
   const sv = curSession(); const live = PROGRAM[dayIdx];
   if (!sv) return live;
-  if (Array.isArray(sv.plan) && sv.plan.length) return {key:live.key, name:sv.planName||live.name, focus:sv.planFocus||live.focus, ex:sv.plan};
+  if (Array.isArray(sv.plan) && sv.plan.length) return {key:live.key, name:sv.planName||live.name, focus:sv.planFocus||live.focus, ex:planFromStore(sv.plan)};
   // Older session with no stored plan: rebuild it from what was actually logged, using the lift
   // definitions those keys had, so the completed workout shows as it was done.
   const defs = {}; BASE_PROGRAM.forEach(d=>d.ex.forEach(e=>defs[e[0]]=defs[e[0]]||e)); PROGRAM.forEach(d=>d.ex.forEach(e=>defs[e[0]]=defs[e[0]]||e));
@@ -921,8 +923,8 @@ function writeSession(mutate){
   writeChain = writeChain.catch(() => {}).then(async () => {
     const id = curId();
     const base = curSession();
-    const doc = base ? JSON.parse(JSON.stringify({date:base.date, day:base.day, sets:base.sets, note:base.note||"", plan:base.plan||PROGRAM[dayIdx].ex, planName:base.planName||PROGRAM[dayIdx].name, planFocus:base.planFocus||PROGRAM[dayIdx].focus}))
-                     : {date:$("date").value || today(), day:PROGRAM[dayIdx].key, sets:{}, note:"", plan:JSON.parse(JSON.stringify(PROGRAM[dayIdx].ex)), planName:PROGRAM[dayIdx].name, planFocus:PROGRAM[dayIdx].focus};
+    const doc = base ? JSON.parse(JSON.stringify({date:base.date, day:base.day, sets:base.sets, note:base.note||"", plan:planToStore(base.plan||PROGRAM[dayIdx].ex), planName:base.planName||PROGRAM[dayIdx].name, planFocus:base.planFocus||PROGRAM[dayIdx].focus}))
+                     : {date:$("date").value || today(), day:PROGRAM[dayIdx].key, sets:{}, note:"", plan:planToStore(PROGRAM[dayIdx].ex), planName:PROGRAM[dayIdx].name, planFocus:PROGRAM[dayIdx].focus};
     mutate(doc);
     doc.savedAt = new Date().toISOString();
     await db.doc("sessions/"+id).set(doc);
@@ -1094,7 +1096,7 @@ $("g-save").addEventListener("click", async () => {
 
 // ---------- progress ----------
 function strengthSummary(){
-  const names = {}; PROGRAM.forEach(d=>d.ex.forEach(([k,n])=>names[k]=names[k]||n)); sessions.forEach(s=>(s.plan||[]).forEach(([k,n])=>names[k]=names[k]||n));
+  const names = {}; PROGRAM.forEach(d=>d.ex.forEach(([k,n])=>names[k]=names[k]||n)); sessions.forEach(s=>planFromStore(s.plan).forEach(([k,n])=>names[k]=names[k]||n));
   const byEx = {};
   sessions.slice().sort((a,b)=>a.date.localeCompare(b.date)).forEach(s => {
     for (const k in s.sets) {
@@ -1176,7 +1178,7 @@ function renderStrength(st){
   }).join("") + `</div>`;
 }
 function renderHistory(){
-  const names = {}; PROGRAM.forEach(d=>d.ex.forEach(([k,n])=>names[k]=names[k]||n)); sessions.forEach(s=>(s.plan||[]).forEach(([k,n])=>names[k]=names[k]||n));
+  const names = {}; PROGRAM.forEach(d=>d.ex.forEach(([k,n])=>names[k]=names[k]||n)); sessions.forEach(s=>planFromStore(s.plan).forEach(([k,n])=>names[k]=names[k]||n));
   const list = sessions.slice().sort((a,b)=>b.date.localeCompare(a.date));
   if (!list.length) { $("history").innerHTML = `<div class="empty">No sessions yet. Your first logged workout shows up here.</div>`; return; }
   $("history").innerHTML = list.map(s => {
@@ -1387,7 +1389,7 @@ $("acct-import").addEventListener("click", async () => {
   if (!window.SEED || !db) return;
   try {
     const b = fstore.batch();
-    for (const [id, doc] of Object.entries(SEED.sessions||{})) b.set(db.doc("sessions/"+id), doc);
+    for (const [id, doc] of Object.entries(SEED.sessions||{})) b.set(db.doc("sessions/"+id), {...doc, plan: planToStore(doc.plan||[])});
     for (const [id, doc] of Object.entries(SEED.bodylog||{})) b.set(db.doc("bodylog/"+id), doc);
     for (const [id, doc] of Object.entries(SEED.settings||{})) b.set(db.doc("settings/"+id), doc);
     await b.commit();
