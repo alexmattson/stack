@@ -10,9 +10,9 @@ test("default setup reproduces a 4-day push/pull with core on pull days", () => 
   assert.ok(p[1].ex.some(e => e[0] === "wt_crunch"));
 });
 test("no bar removes chin-ups; barbell+rack adds barbell bench", () => {
-  const a = buildProgram({gear:{...g50, bar:false, equipment:[]}, prog:PROGRAM_DEFAULTS, trainingDays:[1,2,4,5]});
+  const a = buildProgram({gear:{...g50, bar:false, equipment:["dumbbells","bench"]}, prog:PROGRAM_DEFAULTS, trainingDays:[1,2,4,5]});
   assert.ok(!a.some(d => d.ex.some(e => e[0] === "chinup")));
-  const b = buildProgram({gear:{...g50, equipment:["bar","barbell","rack"]}, prog:PROGRAM_DEFAULTS, trainingDays:[1,2,4,5]});
+  const b = buildProgram({gear:{...g50, equipment:["dumbbells","bench","bar","barbell","rack"]}, prog:PROGRAM_DEFAULTS, trainingDays:[1,2,4,5]});
   assert.ok(b[0].ex.some(e => e[0] === "bb_bench"));
 });
 test("every exercise has media and a guide", () => { for (const e of LIB) assert.ok(e.img && e.q && e.g, e.key); });

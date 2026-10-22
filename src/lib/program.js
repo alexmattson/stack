@@ -77,8 +77,8 @@ export const LIB = [
   EX({key:"bb_deadlift",  name:"Barbell deadlift",        group:"hams", region:"legs", kind:"compound", needs:["barbell"], equip:"bb", start:135, img:"hinge", q:"barbell deadlift form", g:"https://exrx.net/WeightExercises/ErectorSpinae/BBDeadlift", pri:0}),
   EX({key:"bb_rdl",       name:"Barbell Romanian deadlift",group:"hams", region:"legs", kind:"compound", needs:["barbell"], equip:"bb", start:95, img:"hinge", q:"barbell romanian deadlift form", g:"https://exrx.net/WeightExercises/Hamstrings/BBStraightLegDeadlift", pri:1}),
   EX({key:"bb_hip_thrust",name:"Barbell hip thrust",      group:"glutes", region:"legs", kind:"compound", needs:["barbell","bench"], equip:"bb", start:95, img:"hinge", q:"barbell hip thrust form", g:"https://exrx.net/Lists/ExList/HipWt", pri:0}),
-  EX({key:"ez_curl",      name:"EZ-bar curl",             group:"biceps", region:"pull", kind:"iso", needs:["ezbar"], equip:"bb", start:40, img:"curl", q:"ez bar curl form", g:"https://exrx.net/Lists/ExList/ArmWt", pri:1}),
-  EX({key:"ez_skull",     name:"EZ-bar skull-crushers",   group:"triceps", region:"push", kind:"iso", needs:["ezbar","bench"], equip:"bb", start:40, img:"tri", q:"ez bar skull crusher form", g:"https://exrx.net/Lists/ExList/ArmWt", pri:1}),
+  EX({key:"ez_curl",      name:"EZ-bar curl",             group:"biceps", region:"pull", kind:"iso", needs:["ezbar"], equip:"ez", start:40, img:"curl", q:"ez bar curl form", g:"https://exrx.net/Lists/ExList/ArmWt", pri:1}),
+  EX({key:"ez_skull",     name:"EZ-bar skull-crushers",   group:"triceps", region:"push", kind:"iso", needs:["ezbar","bench"], equip:"ez", start:40, img:"tri", q:"ez bar skull crusher form", g:"https://exrx.net/Lists/ExList/ArmWt", pri:1}),
   // kettlebell
   EX({key:"kb_swing",     name:"Kettlebell swing",        group:"hams", region:"legs", kind:"compound", needs:["kettlebell"], equip:"kb", start:35, img:"hinge", q:"kettlebell swing form", g:"https://exrx.net/WeightExercises/GluteusMaximus/KBSwing", pri:2}),
   EX({key:"kb_goblet",    name:"Kettlebell goblet squat", group:"quads", region:"legs", kind:"compound", needs:["kettlebell"], equip:"kb", start:35, img:"squat", q:"kettlebell goblet squat form", g:"https://exrx.net/Lists/ExList/ThighWt", pri:2}),
@@ -101,18 +101,20 @@ export const LIB = [
   EX({key:"ab_rollout",   name:"Ab wheel rollouts",       group:"abs", region:"core", kind:"iso", needs:["abwheel"], bw:true, equip:"bw", img:"abs", q:"ab wheel rollout form", g:"https://exrx.net/WeightExercises/RectusAbdominis/BWRollout", pri:0}),
 ];
 // Equipment the Setup page can toggle. Dumbbells and bench type are chosen separately.
-export const NEEDS_WEIGHTS = {barbell:"barbell", ezbar:"barbell", kettlebell:"kettlebells", cable:"cable"};
 export const EQUIPMENT = [
+  {key:"dumbbells",  name:"Dumbbells",            sub:"Pick the weights you own, per hand", options:"dumbbells"},
+  {key:"bench",      name:"Bench",                sub:"Flat or incline", options:"bench"},
   {key:"bar",        name:"Pull-up bar",          sub:"Chin-ups, pull-ups, hanging ab work"},
-  {key:"barbell",    name:"Barbell & plates",     sub:"Rows, presses, deadlifts; big lifts in 5 lb steps"},
-  {key:"rack",       name:"Squat rack",           sub:"Unlocks barbell squats and bench press"},
-  {key:"ezbar",      name:"EZ curl bar",          sub:"Curls and skull-crushers"},
-  {key:"kettlebell", name:"Kettlebells",          sub:"Swings, goblet squats, presses"},
+  {key:"barbell",    name:"Barbell & plates",     sub:"Rows, presses, deadlifts", options:"barbell"},
+  {key:"rack",       name:"Squat rack",           sub:"Unlocks barbell squats and bench press (needs a barbell)"},
+  {key:"ezbar",      name:"EZ curl bar",          sub:"Curls and skull-crushers; uses your barbell plates", options:"ezbar"},
+  {key:"kettlebell", name:"Kettlebells",          sub:"Swings, goblet squats, presses", options:"kettlebells"},
   {key:"dipbars",    name:"Dip station",          sub:"Dips and captain's chair raises"},
-  {key:"cable",      name:"Cable machine",        sub:"Pulldowns, rows, face pulls, pushdowns"},
-  {key:"bands",      name:"Resistance bands",     sub:"Pull-aparts, face pulls, pushdowns"},
+  {key:"cable",      name:"Cable machine",        sub:"Pulldowns, rows, face pulls, pushdowns", options:"cable"},
+  {key:"bands",      name:"Resistance bands",     sub:"Pull-aparts, face pulls, pushdowns", options:"bands"},
   {key:"abwheel",    name:"Ab wheel",             sub:"Rollouts"},
 ];
+export const BAND_LEVELS = [["light","Light"],["medium","Medium"],["heavy","Heavy"],["xheavy","X-heavy"]];
 export const LIB_BY_KEY = Object.fromEntries(LIB.map(e => [e.key, e]));
 
 // ---------- day templates ----------
@@ -153,10 +155,11 @@ export function buildProgram(opts){
   const {gear, prog, trainingDays} = opts;
   const days = Math.min(6, Math.max(1, trainingDays.length || 4));
   const focus = prog.focus && prog.focus.length ? prog.focus : ["upper","core"];
-  const have = new Set(gear.equipment || (gear.bar ? ["bar"] : []));
+  const have = new Set(gear.equipment || []);
   if (gear.bar) have.add("bar");
-  if (gear.bench !== "none") have.add("bench"); if (gear.bench === "incline") have.add("incline");
-  const ok = e => e.needs.every(n => have.has(n)) && !e.unless.some(n => have.has(n)) && (e.bw || (e.equip === "db" ? gear.dumbbells.length > 0 : e.equip === "kb" ? (gear.kettlebells||[]).length > 0 : true));
+  if (gear.bench && gear.bench !== "none") have.add("bench"); if (gear.bench === "incline") have.add("incline");
+  if (!have.has("bench")) have.delete("incline");
+  const ok = e => e.needs.every(n => have.has(n)) && !e.unless.some(n => have.has(n)) && (e.bw || (e.equip === "db" ? (have.has("dumbbells") && gear.dumbbells.length > 0) : e.equip === "kb" ? (gear.kettlebells||[]).length > 0 : true));
   const rep = {size:{compound:"8–12", iso:"12–15"}, strength:{compound:"5–8", iso:"8–12"}, endurance:{compound:"12–15", iso:"15–20"}}[prog.goal || "size"];
   const liftsPer = {short:4, standard:6, long:8}[prog.length || "standard"];
   const setsFor = e => (prog.goal === "strength" && e.kind === "compound") ? 4 : e.kind === "compound" ? 4 : 3;
@@ -197,10 +200,17 @@ export const COMPOUND = new Set(LIB.filter(e => e.kind === "compound" && e.regio
 export const EX_IMG = Object.fromEntries(LIB.map(e => [e.key, e.img]));
 export const exImg = key => `${(typeof import.meta !== "undefined" && import.meta.env && import.meta.env.BASE_URL) || "/"}img/ex-${EX_IMG[key] || "press"}.png`;
 export const howTo = q => "https://www.youtube.com/results?search_query=" + encodeURIComponent("how to " + q);
-export const GEAR_DEFAULTS = {dumbbells:[10,15,20,25,30,35,40,45,50], bar:true, bench:"incline", equipment:["bar"],
-  kettlebells:[], barbell:{bar:45, plateMin:2.5, max:300}, cable:{max:200, inc:10}};
+export const GEAR_DEFAULTS = {v2:true, dumbbells:[10,15,20,25,30,35,40,45,50], bar:true, bench:"incline", equipment:["dumbbells","bench","bar"],
+  kettlebells:[], barbell:{bar:45, plateMin:2.5, max:300}, ezbar:{bar:25}, cable:{max:200, inc:10}, bands:["light","medium","heavy"]};
 export const KB_WEIGHTS = [10,15,20,25,30,35,40,45,50,53,60,70,80];
-export const normalizeGear = g => ({...GEAR_DEFAULTS, ...g, barbell:{...GEAR_DEFAULTS.barbell, ...(g.barbell||{})}, cable:{...GEAR_DEFAULTS.cable, ...(g.cable||{})}, kettlebells:Array.isArray(g.kettlebells)?g.kettlebells:[], equipment:Array.isArray(g.equipment)?g.equipment:(g.bar!==false?["bar"]:[])});
+export const normalizeGear = g => {
+  const legacy = !Array.isArray(g.equipment) || !g.equipment.includes("dumbbells") && !g.equipment.includes("bench") && (g.dumbbells || []).length > 0 && !g.v2;
+  const eq = new Set(Array.isArray(g.equipment) ? g.equipment : (g.bar !== false ? ["bar"] : []));
+  if (legacy) { if ((g.dumbbells || []).length) eq.add("dumbbells"); if (g.bench && g.bench !== "none") eq.add("bench"); }
+  return {...GEAR_DEFAULTS, ...g, v2:true, barbell:{...GEAR_DEFAULTS.barbell, ...(g.barbell||{})}, ezbar:{...GEAR_DEFAULTS.ezbar, ...(g.ezbar||{})}, cable:{...GEAR_DEFAULTS.cable, ...(g.cable||{})},
+    kettlebells:Array.isArray(g.kettlebells)?g.kettlebells:[], bands:Array.isArray(g.bands)?g.bands:GEAR_DEFAULTS.bands, dumbbells:Array.isArray(g.dumbbells)?g.dumbbells:[],
+    equipment:[...eq], bar:eq.has("bar"), bench: eq.has("bench") ? (g.bench === "flat" ? "flat" : "incline") : "none"};
+};
 // How a lift's weight can move for the equipment it uses: {next(w), prev(w), nearest(w), max}
 export function ladder(equip, gear){
   const list = equip === "kb" ? (gear.kettlebells||[]).slice().sort((a,b)=>a-b) : gear.dumbbells.slice().sort((a,b)=>a-b);
@@ -209,6 +219,8 @@ export function ladder(equip, gear){
     prev: w => { let p = null; for (const x of list) if (x < w) p = x; return p ?? (list[0] ?? w); },
     nearest: w => { if (!list.length) return w; let b = list[0]; for (const x of list) if (x <= w) b = x; return b; },
     max: list.length ? list[list.length - 1] : 0, list };
+  if (equip === "ez") { const bb = gear.barbell || GEAR_DEFAULTS.barbell; const inc = (bb.plateMin || 2.5) * 2; const lo = (gear.ezbar && gear.ezbar.bar) || 25; const hi = Math.min(bb.max || 300, 200);
+    return { next: w => w + inc <= hi ? w + inc : null, prev: w => Math.max(lo, w - inc * 2), nearest: w => Math.min(hi, Math.max(lo, lo + Math.round((w - lo) / inc) * inc)), max: hi }; }
   if (equip === "bb") { const bb = gear.barbell || GEAR_DEFAULTS.barbell; const inc = (bb.plateMin || 2.5) * 2; const lo = bb.bar || 45; const hi = bb.max || 300;
     return { next: w => w + inc <= hi ? w + inc : null, prev: w => Math.max(lo, w - inc * 2), nearest: w => Math.min(hi, Math.max(lo, lo + Math.round((w - lo) / inc) * inc)), max: hi }; }
   if (equip === "cable") { const c = gear.cable || GEAR_DEFAULTS.cable; const inc = c.inc || 10; const hi = c.max || 200;

@@ -374,14 +374,15 @@ td.r,th.r{text-align:right}
 .nav{bottom:calc(14px + env(safe-area-inset-bottom,0px))}
 
 /* equipment inventories */
-.inv{background:var(--bg2);border-radius:18px;padding:12px;display:grid;gap:10px;margin:-6px 0 2px 54px}
+.inv{background:var(--bg2);border-radius:18px;padding:12px;display:grid;gap:10px;margin:-6px 0 2px 0}
 .inv .eyebrow{margin:0}
-.invrow{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:.88rem}
-.invrow>span{color:var(--ink);font-weight:600}
-.segc.small{padding:3px;gap:4px;grid-template-columns:none;grid-auto-flow:column}
-.segc.small button{padding:7px 10px;font-size:.8rem}
-.numin{display:flex;align-items:center;gap:6px}
-.numin input{width:84px;text-align:center;padding:8px 10px}
+.invrow{display:grid;gap:6px;font-size:.88rem}
+.invrow>span{color:var(--muted);font-weight:600;font-size:.78rem}
+.segc.small{padding:3px;gap:4px;grid-template-columns:none;grid-auto-flow:column;grid-auto-columns:1fr;background:var(--card)}
+.segc.small button{padding:8px 6px;font-size:.85rem}
+.segc.small button[aria-pressed="true"]{background:var(--teal);color:var(--teal-ink);box-shadow:none}
+.numin{display:flex;align-items:center;gap:8px}
+.numin input{width:110px;text-align:center;padding:9px 10px;background:var(--card)}
 .numin small{color:var(--muted)}
 @media (max-width:420px){.inv{margin-left:0}}
 
@@ -400,3 +401,11 @@ td.r,th.r{text-align:right}
 .startcard.done h2,.startcard.done .eyebrow,.startcard.done .txt p{color:#fff}
 .startcard.done .pill{background:#fff;color:#1f6b52}
 .startcard .timer{position:relative;z-index:2;margin-top:0}
+.wgrid.four{grid-template-columns:repeat(4,1fr)}
+.pill.mini{padding:8px 14px;font-size:.85rem}
+.mini-note{font-size:.78rem;margin:0}
+.inv>.segc{background:var(--card)}
+.inv>.segc button[aria-pressed="true"]{background:var(--teal);color:var(--teal-ink);box-shadow:none}
+.inv .wgrid button{background:var(--card)}
+.inv .wgrid button[aria-pressed="true"]{background:var(--teal);color:var(--teal-ink)}
+.inv .pill.ghost{background:var(--card)}
