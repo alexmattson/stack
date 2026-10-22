@@ -479,8 +479,9 @@ input,textarea,select{font-size:max(16px,1em)}
 .sheet-t{font-size:1.15rem;font-weight:800}
 .sheet p{margin:0 0 6px}
 .sheet-btns{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.sheet-btns .pill{justify-content:center;text-align:center}
 .pill.danger{background:#c2542f;color:#fff}
 .fsave-row{gap:10px}
 .fsave-row .pill{pointer-events:auto}
 .fsave-row .pill.big{flex:1;max-width:520px}
-.clearbtn{flex:0 0 auto;padding:16px 18px;color:#c2542f}
+.clearbtn{flex:0 0 auto;padding:16px 18px;background:#c2542f;color:#fff}
