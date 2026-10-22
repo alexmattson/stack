@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useEffect } from "react";
 import { PageHeader, BackButton, Card, Toggle, Icon } from "../components/ui.jsx";
-import { LIB, exImg, howTo, buildProgram } from "../lib/program.js";
+import { LIB, exImg, buildProgram } from "../lib/program.js";
 
 const REGION = {push:"Push · chest, shoulders, triceps", pull:"Pull · back, biceps", legs:"Legs", core:"Core"};
 const ORDER = ["push","pull","legs","core"];
@@ -29,7 +29,7 @@ export function ExercisesPage({ data, onBack }){
             {LIB.filter(e => e.region === r).map(e => { const usable = available.usable.has(e.key); const on = !off.has(e.key); return (
               <div key={e.key} className={`exrow ${usable ? "" : "dim"}`}>
                 <img src={exImg(e.key)} alt=""/>
-                <div className="grow"><b>{e.name}{available.inPlan.has(e.key) && on && <span className="chip inplan">in plan</span>}</b><small>{e.kind === "compound" ? "Compound" : "Isolation"}{e.bw ? " · bodyweight" : ""}{e.needs.length ? ` · needs ${e.needs.join(", ")}` : ""} · <a href={e.g} target="_blank" rel="noopener">guide</a> · <a href={howTo(e.q)} target="_blank" rel="noopener">video</a></small></div>
+                <div className="grow"><b>{e.name}{available.inPlan.has(e.key) && on && <span className="chip inplan">in plan</span>}</b><small>{e.kind === "compound" ? "Compound" : "Isolation"}{e.bw ? " · bodyweight" : ""}{e.needs.length ? ` · needs ${e.needs.join(", ")}` : ""} · <a href={e.g} target="_blank" rel="noopener">guide</a></small></div>
                 <Toggle on={on} onChange={v => setExcluded(v ? excluded.filter(k => k !== e.key) : [...excluded, e.key])} label={e.name}/>
               </div>); })}
           </Card>

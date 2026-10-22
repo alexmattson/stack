@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { PageHeader, BackButton, IconButton, Pill, BigInput, IMG, useStatus, useBeep } from "../components/ui.jsx";
 import { useRestTimer } from "../hooks/useRestTimer.js";
-import { exImg, howTo, TIMED } from "../lib/program.js";
+import { exImg, TIMED } from "../lib/program.js";
 
 const Segments = ({ wo }) => <div className="seg">{wo.day.ex.flatMap((e, ei) => Array.from({length:e[2]}, (_, si) => <i key={`${ei}-${si}`} className={`${wo.savedSet(e[0], si) ? "done" : ""} ${ei === wo.ptr.ei && si === wo.ptr.si ? "cur" : ""}`}/>))}</div>;
 
@@ -46,7 +46,7 @@ export function FocusMode({ data, wo, onBack, onHome }){
               <img className="fimg" src={exImg(key)} alt=""/>
               <div className="eyebrow">Lift {wo.ptr.ei + 1} of {wo.day.ex.length} · set {wo.ptr.si + 1} of {n} · target {reps}</div>
               <h2>{name}</h2>
-              <div className="muted" style={{fontSize:".85rem"}}><a href={g} target="_blank" rel="noopener">guide</a> · <a href={howTo(q)} target="_blank" rel="noopener">video</a></div>
+              <div className="muted" style={{fontSize:".85rem"}}><a href={g} target="_blank" rel="noopener">guide</a></div>
               <div className="why">{(sv ? `Logged ${bw ? sv.r + " reps" : sv.w + " × " + sv.r}. ` : "") + sg.why}</div>
             </div>
             <div className="bigs">

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import { PageHeader, BackButton, IconButton, Card, Pill, Icon, IconBubble, BigInput, Status, useStatus, useBeep, IMG } from "../components/ui.jsx";
 import { useRestTimer } from "../hooks/useRestTimer.js";
 import { fmtDate } from "../lib/dates.js";
-import { exImg, howTo, TIMED } from "../lib/program.js";
+import { exImg, TIMED } from "../lib/program.js";
 
 const RestBar = ({ timer, nextText, onSkip }) => (
   <div className={`timer ${timer.active ? "on" : ""} ${timer.done ? "go" : ""}`}>
@@ -75,7 +75,7 @@ const ExerciseCard = ({ ex, ei, wo, draft, setDraft, onSave, onFocus, status }) 
   return (
     <div className="exl">
       <div className="hd"><IconBubble name={ei < 3 ? "push" : "pull"}/><div style={{minWidth:0}}><b>{name}</b><small>{n} × {reps}{bw ? "" : ` · ${sg.w} lb`}</small></div><span className="chip">{target.length > 18 ? (sg.w ? sg.w + " lb" : "max") : target}</span></div>
-      <div className="links"><a href={g} target="_blank" rel="noopener">guide</a> · <a href={howTo(q)} target="_blank" rel="noopener">video</a> · <a href="#" onClick={e => { e.preventDefault(); onFocus(ei); }}>focus</a> · <span>{sg.why}</span></div>
+      <div className="links"><a href={g} target="_blank" rel="noopener">guide</a> · <a href="#" onClick={e => { e.preventDefault(); onFocus(ei); }}>focus</a> · <span>{sg.why}</span></div>
       <div className="setrows">{Array.from({length:n}, (_, i) => <SetRow key={i} ex={ex} i={i} wo={wo} draft={draft} setDraft={setDraft} onSave={onSave} current={wo.ptr.ei === ei && wo.ptr.si === i}/>)}</div>
       <div className={`exstatus ${status && status.key === key ? (status.ok ? "ok" : "bad") : ""}`}>{status && status.key === key ? status.text : ""}</div>
     </div>
