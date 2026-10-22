@@ -472,3 +472,15 @@ input,textarea,select{font-size:max(16px,1em)}
 .setrow input{font-size:16px}
 .bigin input{font-size:2.4rem}
 .fcard .bigin input{font-size:3rem}
+
+/* confirm sheet */
+.sheet-wrap{position:fixed;inset:0;z-index:60;background:rgba(21,48,58,.45);display:flex;align-items:flex-end;justify-content:center;padding:0 max(12px,env(safe-area-inset-left,0px)) calc(12px + env(safe-area-inset-bottom,0px))}
+.sheet{width:100%;max-width:520px;background:var(--card);border-radius:26px;padding:20px 18px;display:grid;gap:8px;box-shadow:0 20px 50px -20px rgba(21,48,58,.6)}
+.sheet-t{font-size:1.15rem;font-weight:800}
+.sheet p{margin:0 0 6px}
+.sheet-btns{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.pill.danger{background:#c2542f;color:#fff}
+.fsave-row{gap:10px}
+.fsave-row .pill{pointer-events:auto}
+.fsave-row .pill.big{flex:1;max-width:520px}
+.clearbtn{flex:0 0 auto;padding:16px 18px;color:#c2542f}

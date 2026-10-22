@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { PageHeader, BackButton, IconButton, Card, Pill, Icon, IconBubble, BigInput, Status, useStatus, useBeep, IMG } from "../components/ui.jsx";
+import { PageHeader, BackButton, IconButton, Card, Pill, Icon, IconBubble, BigInput, Status, useStatus, useBeep, IMG, ConfirmSheet } from "../components/ui.jsx";
 import { useRestTimer } from "../hooks/useRestTimer.js";
 import { fmtDate } from "../lib/dates.js";
 import { exImg, TIMED } from "../lib/program.js";
@@ -91,6 +91,8 @@ export function WorkoutPage({ data, wo, date, onBack, onFocus }){
   const [finishStatus, setFinish] = useStatus();
   const [busy, setBusy] = useState(false);
   const [nextText, setNextText] = useState("");
+  const [confirmClear, setConfirmClear] = useState(false); const [clearing, setClearing] = useState(false);
+  const clearWorkout = async () => { setClearing(true); try { timer.stop(); await data.api.deleteSession(wo.id); setDraft({}); setNote(""); setConfirmClear(false); setFinish("Workout cleared. It will follow your current plan.", true); } catch (e) { setFinish(data.api.friendlyDbError(e)); } setClearing(false); };
   const { prime, beep } = useBeep();
   const timer = useRestTimer(beep);
   const cur = wo.day.ex[wo.ptr.ei];
@@ -121,11 +123,12 @@ export function WorkoutPage({ data, wo, date, onBack, onFocus }){
   return (
     <section id="log">
       <PageHeader left={<BackButton onClick={onBack}/>} title={`Day ${data.program.findIndex(d => d.key === wo.day.key) + 1} ${wo.day.name}`} sub={`${wo.day.focus} · ${fmtDate(date)}`} />
+      <ConfirmSheet open={confirmClear} danger title="Clear this workout?" body={`Every set and note logged for ${wo.day.name} on ${fmtDate(date)} will be deleted. The day goes back to your current plan, so it will pick up any changes you make to goals or equipment.`} confirmLabel="Clear workout" busy={clearing} onConfirm={clearWorkout} onCancel={() => setConfirmClear(false)}/>
       <StartCard wo={wo} timer={timer} nextText={nextText} onSkipRest={() => timer.stop()} onStart={() => { const p = wo.nextOpen(); if (p) wo.setPtr(p); onFocus(); }}/>
       <textarea className="note" value={note} onChange={e => setNote(e.target.value)} placeholder="Session notes: energy, sleep, what felt heavy"/>
       <div>{wo.day.ex.map((ex, ei) => <ExerciseCard key={ex[0] + ei} ex={ex} ei={ei} wo={wo} draft={draft} setDraft={setDraft} status={exStatus} onSave={(key, i, wv, rv) => persist(key, i, wv, rv, true)} onFocus={ei => { let si = 0; const ex = wo.day.ex[ei]; for (let k = 0; k < ex[2]; k++) if (!wo.savedSet(ex[0], k)) { si = k; break; } wo.setPtr({ei, si}); onFocus(); }}/>)}</div>
       <Status text={finishStatus.text} ok={finishStatus.ok}/>
-      <div className="fsave"><button className={`pill big ${finishStatus.ok && finishStatus.text ? "saved" : ""}`} onClick={finish}>{finishStatus.ok && finishStatus.text ? <><Icon name="tick" className="gicon"/><span>Session saved</span></> : "Finish session"}</button></div>
+      <div className="fsave fsave-row">{wo.session && <button className="pill ghost clearbtn" aria-label="Clear workout" title="Clear workout" onClick={() => setConfirmClear(true)}><Icon name="trash" className="gicon"/></button>}<button className={`pill big ${finishStatus.ok && finishStatus.text ? "saved" : ""}`} onClick={finish}>{finishStatus.ok && finishStatus.text ? <><Icon name="tick" className="gicon"/><span>Session saved</span></> : "Finish session"}</button></div>
     </section>
   );
 }

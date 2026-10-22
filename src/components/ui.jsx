@@ -25,6 +25,7 @@ export const Icon = ({ name, className = "" }) => {
     next: <path d="M9 5l7 7-7 7"/>,
     close: <path d="M6 6l12 12M18 6L6 18"/>,
     expand: <path d="M14 4h6v6M10 20H4v-6M20 4l-7 7M4 20l7-7"/>,
+    trash: <><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></>,
     google: <><path d="M21.6 12.2c0-.7-.1-1.3-.2-1.9H12v3.7h5.4a4.6 4.6 0 0 1-2 3v2.5h3.2c1.9-1.7 3-4.3 3-7.3z"/><path d="M12 22c2.7 0 5-.9 6.6-2.4l-3.2-2.5c-.9.6-2 1-3.4 1-2.6 0-4.8-1.8-5.6-4.1H3.1v2.6A10 10 0 0 0 12 22z"/><path d="M6.4 14a6 6 0 0 1 0-3.9V7.5H3.1a10 10 0 0 0 0 9z"/><path d="M12 6c1.5 0 2.8.5 3.8 1.5l2.8-2.8A10 10 0 0 0 3.1 7.5L6.4 10C7.2 7.8 9.4 6 12 6z"/></>,
   };
   return <svg viewBox="0 0 24 24" className={className} aria-hidden="true">{paths[name]}</svg>;
@@ -74,6 +75,20 @@ export const BigInput = ({ id, label, value, onChange, step, disabled, placehold
     <div className="st"><button type="button" onClick={() => !disabled && onChange(Math.max(0, (+value || 0) - step))}>−{step}</button><button type="button" onClick={() => !disabled && onChange((+value || 0) + step)}>+{step}</button></div>
   </div>
 );
+
+// Bottom sheet confirmation; the destructive action is never one tap away.
+export const ConfirmSheet = ({ open, title, body, confirmLabel = "Confirm", danger, onConfirm, onCancel, busy }) => {
+  if (!open) return null;
+  return (
+    <div className="sheet-wrap" onClick={onCancel}>
+      <div className="sheet" role="dialog" aria-modal="true" onClick={e => e.stopPropagation()}>
+        <b className="sheet-t">{title}</b>
+        <p className="muted">{body}</p>
+        <div className="sheet-btns"><Pill ghost onClick={onCancel} disabled={busy}>Cancel</Pill><Pill className={danger ? "danger" : ""} onClick={onConfirm} disabled={busy}>{busy ? "Working…" : confirmLabel}</Pill></div>
+      </div>
+    </div>
+  );
+};
 
 export function useStatus(timeout = 4000){
   const [st, setSt] = React.useState({text:"", ok:false});
