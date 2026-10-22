@@ -1,5 +1,5 @@
 // Stack service worker: network-first for the page, cache-first for images and SDK files.
-const CACHE = "stack-v3";
+const CACHE = "stack-v4";
 self.addEventListener("install", e => { self.skipWaiting(); });
 self.addEventListener("activate", e => { e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== CACHE).map(k => caches.delete(k))))); self.clients.claim(); });
 self.addEventListener("fetch", e => {
