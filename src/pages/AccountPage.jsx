@@ -39,7 +39,7 @@ export function AccountPage({ data, auth, onBack, onManage, go, onReplayOnboardi
         </Card>
       </>}
       <h2>About</h2>
-      <Card className="rowcard"><Logo size={44}/><div className="grow"><b>Stack</b><small>Progressive training. Show up, stack it up.</small></div></Card>
+      <Card className="rowcard"><Logo size={44}/><div className="grow"><b>Stack</b><small>Progressive training. Show up, stack it up.</small><small style={{display:"block", color:"var(--muted)", fontSize:".72rem"}}>Build {typeof __BUILD__ !== "undefined" ? __BUILD__ : "dev"}</small></div></Card>
     </section>
   );
 }

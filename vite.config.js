@@ -4,6 +4,7 @@ import { VitePWA } from "vite-plugin-pwa";
 
 export default defineConfig({
   base: "/stack/",
+  define: { __BUILD__: JSON.stringify(new Date().toISOString().slice(0, 16).replace("T", " ") + " UTC") },
   resolve: { alias: process.env.VITE_MOCK ? { "./firebase.js": "/src/lib/firebase.mock.js", "../lib/firebase.js": "/src/lib/firebase.mock.js" } : {} },
   plugins: [
     react(),
