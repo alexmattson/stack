@@ -258,8 +258,13 @@ textarea{border-radius:18px;line-height:1.4;font-weight:500}
 #login{position:fixed;inset:0;z-index:40;background:var(--bg);overflow:auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:calc(24px + env(safe-area-inset-top,0px)) calc(24px + env(safe-area-inset-bottom,0px))}
 #login::after{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;background:radial-gradient(60vw 50vh at 85% 0%,var(--glow1) 0%,transparent 72%),radial-gradient(60vw 50vh at 0% 100%,var(--glow2) 0%,transparent 72%),var(--bg)}
 .login-wrap{min-height:100%;display:flex;flex-direction:column;justify-content:flex-end;gap:14px}
-.login-art{display:flex;justify-content:center;flex:1;align-items:flex-end;min-height:200px}
-.login-art img{max-height:38vh;width:auto;filter:drop-shadow(0 18px 22px rgba(21,48,58,.25))}
+.login-art{position:relative;flex:1;min-height:240px;max-height:46vh}
+.login-art img{position:absolute;max-height:100%;width:auto;filter:drop-shadow(0 22px 26px rgba(21,48,58,.25))}
+.fl-a{left:4%;bottom:0;height:88%;animation:floatA 5.5s ease-in-out infinite}
+.fl-b{right:2%;bottom:6%;height:92%;animation:floatB 6.5s ease-in-out infinite}
+@keyframes floatA{0%,100%{transform:translateY(0) rotate(-2deg)}50%{transform:translateY(-14px) rotate(1deg)}}
+@keyframes floatB{0%,100%{transform:translateY(-8px) rotate(2deg)}50%{transform:translateY(8px) rotate(-1deg)}}
+@media (prefers-reduced-motion:reduce){.fl-a,.fl-b{animation:none}}
 .login-brand{display:flex;align-items:center;gap:10px;font-size:1.3rem;font-weight:800}
 .login-brand .logo{width:40px;height:40px}
 .login-h{font-size:2rem;line-height:1.05;margin:0}
@@ -528,7 +533,7 @@ td.r,th.r{text-align:right}
 <!-- ===== LOGIN ===== -->
 <section id="login" hidden>
   <div class="wrap login-wrap">
-    <div class="login-art"><img src="img/hero-done.png" alt=""></div>
+    <div class="login-art"><img class="fl fl-a" src="img/login-man.png" alt=""><img class="fl fl-b" src="img/login-woman.png" alt=""></div>
     <div class="login-brand"><span class="logo"><svg viewBox="0 0 48 48" aria-hidden="true"><defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#1c5467"/><stop offset="1" stop-color="#2c7f98"/></linearGradient></defs><circle cx="24" cy="24" r="24" fill="url(#lg)"/><rect x="12" y="30" width="24" height="6" rx="3" fill="#ffffff" opacity=".55"/><rect x="9" y="22" width="30" height="6" rx="3" fill="#ffffff" opacity=".8"/><rect x="6" y="14" width="36" height="6" rx="3" fill="#ffd27a"/><circle cx="42" cy="17" r="4" fill="#f6a33e"/></svg></span><b>Stack</b></div>
     <h1 class="login-h">Show up. Stack it up.</h1>
     <p class="muted login-p" id="login-p">Your workouts, your progress, one place.</p>
