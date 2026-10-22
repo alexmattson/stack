@@ -457,4 +457,4 @@ td.r,th.r{text-align:right}
 
 /* onboarding welcome art: a fixed-height stage so nothing spills into the headline */
 .ob-center .login-art{flex:none;height:min(44vh,380px);min-height:220px;margin:8px auto 6px}
-.ob-center{justify-content:flex-start;gap:8px}
+.ob-center{justify-content:center;gap:8px;min-height:calc(100vh - 190px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px))}
