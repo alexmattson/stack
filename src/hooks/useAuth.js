@@ -2,6 +2,8 @@ import { useEffect, useState, useCallback } from "react";
 import { auth, waitForUser, watchUser, anonSignIn, redirectResult, googleSignIn, signOut, friendlyAuthError } from "../lib/firebase.js";
 
 // Auth state machine: "loading" → "login" (no Google user) → "ready". Sign-out returns to "login".
+export const ADMINS = ["me@alexmattson.com"];
+export const isAdmin = u => !!(u && !u.isAnonymous && u.email && ADMINS.includes(u.email.toLowerCase()));
 export function useAuth(){
   const [state, setState] = useState("loading");
   const [user, setUser] = useState(null);
@@ -21,5 +23,5 @@ export function useAuth(){
   const skip = useCallback(async () => { try { const u = auth.currentUser || await anonSignIn(); setUser(u); setState("ready"); } catch (e) { setError(friendlyAuthError(e)); } }, []);
   const google = useCallback(async () => { setError(""); try { await googleSignIn(); const u = auth.currentUser; if (u && !u.isAnonymous) { setUser(u); setState("ready"); } } catch (e) { setError(friendlyAuthError(e)); } }, []);
   const logout = useCallback(async () => { setError(""); try { await signOut(); } catch (e) { setError(friendlyAuthError(e)); } setUser(null); setState("login"); }, []);
-  return { state, user, error, skip, google, logout, openLogin: () => setState("manage"), closeLogin: () => setState("ready") };
+  return { state, user, error, skip, google, logout, openLogin: () => setState("manage"), closeLogin: () => setState("ready"), admin: isAdmin(user) };
 }

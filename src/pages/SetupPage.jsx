@@ -3,8 +3,8 @@ import { PageHeader, BackButton, Card, Pill, Segmented, Toggle, RowCard, IconBub
 import { EQUIPMENT, KB_WEIGHTS, BAND_LEVELS } from "../lib/program.js";
 import { DOW } from "../lib/dates.js";
 
-const ALL_W = Array.from({length:20}, (_, i) => (i + 1) * 5);
-const GOAL_SUB = {size:"Moderate weight, 8–12 reps on the big lifts. Muscle.", strength:"Heavier, 5–8 reps on the big lifts, longer rests. Power.", endurance:"Lighter, 12–20 reps. Conditioning and tone."};
+export const ALL_W = Array.from({length:20}, (_, i) => (i + 1) * 5);
+export const GOAL_SUB = {size:"Moderate weight, 8–12 reps on the big lifts. Muscle.", strength:"Heavier, 5–8 reps on the big lifts, longer rests. Power.", endurance:"Lighter, 12–20 reps. Conditioning and tone."};
 const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 
 // Floating save pill: appears when something changed, turns green once the plan is rebuilt.
@@ -17,7 +17,7 @@ const FloatingSave = ({ dirty, state, onSave }) => {
 
 // What you own for a piece of equipment, shown inline under its toggle once it's on.
 const Grid = ({ all, picked, onChange }) => <div className="wgrid">{all.map(w => <button key={w} aria-pressed={picked.includes(w)} onClick={() => onChange(picked.includes(w) ? picked.filter(x => x !== w) : [...picked, w])}>{w}</button>)}</div>;
-const Options = ({ kind, g, setG, equip }) => {
+export const Options = ({ kind, g, setG, equip }) => {
   const set = patch => setG({...g, ...patch});
   if (kind === "dumbbells") return (
     <div className="inv"><div className="eyebrow">Weights · lb, per hand</div>

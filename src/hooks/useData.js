@@ -12,6 +12,7 @@ export function useData(uid){
   const [prog, setProg] = useState(PROGRAM_DEFAULTS);
   const [trainingDays, setTrainingDays] = useState([1, 2, 4, 5]);
   const [loaded, setLoaded] = useState(false);
+  const [settingsSeen, setSettingsSeen] = useState({program:null, equipment:null, schedule:null});
   const [error, setError] = useState("");
   useEffect(() => {
     if (!db) return;
@@ -19,9 +20,9 @@ export function useData(uid){
     const offs = [
       db.watchCol("sessions", s => { setSessions(s); setLoaded(true); }, e => setError("Lost connection to your log: " + (e.message || ""))),
       db.watchCol("bodylog", setBodylog, () => {}),
-      db.watchDoc("settings/equipment", d => { if (d && Array.isArray(d.dumbbells)) setGear(normalizeGear(d)); }, () => {}),
-      db.watchDoc("settings/program", d => { if (d && Array.isArray(d.focus)) setProg({...PROGRAM_DEFAULTS, ...d}); }, () => {}),
-      db.watchDoc("settings/schedule", d => { if (d && Array.isArray(d.trainingDays)) setTrainingDays(d.trainingDays.slice()); }, () => {}),
+      db.watchDoc("settings/equipment", d => { setSettingsSeen(s => ({...s, equipment:!!d})); if (d && Array.isArray(d.dumbbells)) setGear(normalizeGear(d)); }, () => setSettingsSeen(s => ({...s, equipment:false}))),
+      db.watchDoc("settings/program", d => { setSettingsSeen(s => ({...s, program:!!d})); if (d && Array.isArray(d.focus)) setProg({...PROGRAM_DEFAULTS, ...d}); }, () => setSettingsSeen(s => ({...s, program:false}))),
+      db.watchDoc("settings/schedule", d => { setSettingsSeen(s => ({...s, schedule:!!d})); if (d && Array.isArray(d.trainingDays)) setTrainingDays(d.trainingDays.slice()); }, () => setSettingsSeen(s => ({...s, schedule:false}))),
     ];
     return () => offs.forEach(f => f());
   }, [db]);
@@ -55,8 +56,12 @@ export function useData(uid){
     addBodylog: (date, weight, arm) => db.set("bodylog/" + date, {date, weight:weight || null, arm:arm || null}),
     saveSchedule: days => { setTrainingDays(days); return db.set("settings/schedule", {trainingDays:days}); },
     saveSetup: (g, p) => { setGear(g); setProg(p); return Promise.all([db.set("settings/equipment", g), db.set("settings/program", p)]); },
+    saveExcluded: excluded => { const p = {...prog, excluded}; setProg(p); return db.set("settings/program", p); },
+    completeOnboarding: (g, p, days) => { setGear(g); setProg(p); setTrainingDays(days); return Promise.all([db.set("settings/equipment", g), db.set("settings/program", p), db.set("settings/schedule", {trainingDays:days})]); },
     importSeed: async seed => { const entries = []; for (const [id, d] of Object.entries(seed.sessions || {})) entries.push(["sessions/" + id, {...d, plan:planToStore(d.plan || [])}]); for (const [id, d] of Object.entries(seed.bodylog || {})) entries.push(["bodylog/" + id, d]); for (const [id, d] of Object.entries(seed.settings || {})) entries.push(["settings/" + id, d]); await db.batchSet(entries); },
     friendlyDbError,
   };
-  return { sessions, bodylog, gear, prog, trainingDays, program, dbs, loaded, error, api, today: today() };
+  const settingsKnown = Object.values(settingsSeen).every(v => v !== null);
+  const needsOnboarding = settingsKnown && !settingsSeen.program && !settingsSeen.equipment && sessions.length === 0;
+  return { sessions, bodylog, gear, prog, trainingDays, program, dbs, loaded: loaded && settingsKnown, needsOnboarding, error, api, today: today() };
 }

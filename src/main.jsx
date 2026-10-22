@@ -8,8 +8,9 @@ import "./styles.css";
 // home-screen app never keeps serving a stale build.
 registerSW({ immediate: true });
 if ("serviceWorker" in navigator) {
-  let reloaded = false;
-  navigator.serviceWorker.addEventListener("controllerchange", () => { if (reloaded) return; reloaded = true; window.location.reload(); });
+  // Only reload when an existing controller is replaced (an update), never on the first install.
+  const hadController = !!navigator.serviceWorker.controller; let reloaded = false;
+  navigator.serviceWorker.addEventListener("controllerchange", () => { if (!hadController || reloaded) return; reloaded = true; window.location.reload(); });
 }
 
 createRoot(document.getElementById("root")).render(<App/>);

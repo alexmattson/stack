@@ -12,6 +12,8 @@ import { SchedulePage } from "./pages/SchedulePage.jsx";
 import { ProgressPage } from "./pages/ProgressPage.jsx";
 import { GoalsPage, EquipmentPage } from "./pages/SetupPage.jsx";
 import { AccountPage } from "./pages/AccountPage.jsx";
+import { Onboarding } from "./pages/Onboarding.jsx";
+import { ExercisesPage } from "./pages/ExercisesPage.jsx";
 import { today } from "./lib/dates.js";
 import { sessionFor, plannedDayFor } from "./lib/plan.js";
 
@@ -29,10 +31,13 @@ function Shell({ auth }){
   const nav = useNav();
   const [wsel, setWsel] = useState({date:today(), dayIdx:0});
   const [focus, setFocus] = useState(false);
+  const [onboarded, setOnboarded] = useState(false);
+  const [replay, setReplay] = useState(false);
   const wo = useWorkout(data, wsel.date, wsel.dayIdx);
   const openWorkout = (date, dayIdx) => { const cur = sessionFor(data.sessions, date); setWsel({date, dayIdx: cur ? Math.max(0, data.program.findIndex(x => x.key === cur.day)) : (dayIdx ?? plannedDayFor(date, data.sessions, data.program, data.trainingDays))}); nav.go("log"); };
   if (!data.loaded) return <Splash/>;
   if (auth.state === "manage") return <LoginScreen auth={auth} manage onBack={auth.closeLogin}/>;
+  if ((data.needsOnboarding && !onboarded) || replay) return <Onboarding data={data} replay={replay} onDone={() => { setOnboarded(true); setReplay(false); nav.jump("home"); }} onCancel={() => setReplay(false)}/>;
   return (
     <>
       <div className="wrap">
@@ -42,7 +47,8 @@ function Shell({ auth }){
         {nav.tab === "progress" && <ProgressPage data={data} onBack={nav.back}/>}
         {nav.tab === "goals" && <GoalsPage data={data} onBack={nav.back}/>}
         {nav.tab === "gear" && <EquipmentPage data={data} onBack={nav.back}/>}
-        {nav.tab === "settings" && <AccountPage data={data} auth={auth} onBack={nav.back} onManage={auth.openLogin} go={nav.go}/>}
+        {nav.tab === "exercises" && <ExercisesPage data={data} onBack={nav.back}/>}
+        {nav.tab === "settings" && <AccountPage data={data} auth={auth} onBack={nav.back} onManage={auth.openLogin} go={nav.go} onReplayOnboarding={() => setReplay(true)}/>}
       </div>
       {focus && <FocusMode data={data} wo={wo} onBack={() => setFocus(false)} onHome={() => { setFocus(false); nav.jump("home"); }}/>}
       <NavRail tab={nav.tab} onSelect={nav.jump}/>

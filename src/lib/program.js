@@ -159,7 +159,8 @@ export function buildProgram(opts){
   if (gear.bar) have.add("bar");
   if (gear.bench && gear.bench !== "none") have.add("bench"); if (gear.bench === "incline") have.add("incline");
   if (!have.has("bench")) have.delete("incline");
-  const ok = e => e.needs.every(n => have.has(n)) && !e.unless.some(n => have.has(n)) && (e.bw || (e.equip === "db" ? (have.has("dumbbells") && gear.dumbbells.length > 0) : e.equip === "kb" ? (gear.kettlebells||[]).length > 0 : true));
+  const excluded = new Set(prog.excluded || []);
+  const ok = e => !excluded.has(e.key) && e.needs.every(n => have.has(n)) && !e.unless.some(n => have.has(n)) && (e.bw || (e.equip === "db" ? (have.has("dumbbells") && gear.dumbbells.length > 0) : e.equip === "kb" ? (gear.kettlebells||[]).length > 0 : true));
   const rep = {size:{compound:"8–12", iso:"12–15"}, strength:{compound:"5–8", iso:"8–12"}, endurance:{compound:"12–15", iso:"15–20"}}[prog.goal || "size"];
   const liftsPer = {short:4, standard:6, long:8}[prog.length || "standard"];
   const setsFor = e => (prog.goal === "strength" && e.kind === "compound") ? 4 : e.kind === "compound" ? 4 : 3;
@@ -191,7 +192,7 @@ export function buildProgram(opts){
   return program;
 }
 
-export const PROGRAM_DEFAULTS = {focus:["upper","core"], goal:"size", length:"standard", experience:"some", bodyweight:150};
+export const PROGRAM_DEFAULTS = {focus:["upper","core"], goal:"size", length:"standard", experience:"some", bodyweight:150, excluded:[]};
 
 export const BODYWEIGHT_EX = new Set(LIB.filter(e => e.bw).map(e => e.key));
 export const CORE_BW = new Set(LIB.filter(e => e.bw && e.region === "core").map(e => e.key));
