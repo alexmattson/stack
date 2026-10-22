@@ -1478,12 +1478,18 @@ $("data-export").addEventListener("click", () => {
 });
 $("login-out").addEventListener("click", async () => {
   try { localStorage.removeItem(SKIP_KEY); } catch(e) {}
-  await new Promise(res => { loginResolve = res; showLogin(false); });   // choose again before anything is bound
+  $("login-out").disabled = true;
+  try {
+    // Sign out and wait until Firebase confirms there is no user before offering the choices again.
+    const gone = new Promise(res => { const off = auth.onAuthStateChanged(x => { if (!x) { off(); res(); } }); });
+    await auth.signOut();
+    await Promise.race([gone, new Promise(r => setTimeout(r, 3000))]);
+  } catch(e) { setStatus("login-status", e.message); $("login-out").disabled = false; return; }
+  $("login-out").disabled = false;
+  await new Promise(res => { loginResolve = res; showLogin(false); });
   let u = auth.currentUser; if (!u) u = (await auth.signInAnonymously()).user;
   uid = u.uid; renderAccount(u); bindData(); hideLogin(); showTab("home");
 });
-// Sign out first, then (via the auth listener) the login screen takes over.
-$("login-out").addEventListener("click", async () => { try { await auth.signOut(); } catch(e) { setStatus("login-status", e.message); } }, true);
 $("acct-out").addEventListener("click", () => showLogin(true));
 $("acct-import").addEventListener("click", async () => {
   if (!window.SEED || !db) return;
