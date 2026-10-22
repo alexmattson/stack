@@ -17,8 +17,10 @@ test("no bar removes chin-ups; barbell+rack adds barbell bench", () => {
 });
 test("every exercise has media and a guide", () => { for (const e of LIB) assert.ok(e.img && e.q && e.g, e.key); });
 test("progression: top of range steps to next owned dumbbell; barbell steps 5 lb", () => {
-  const s1 = suggest(["flat_press","Flat",4,"8–12",35,"",""], [{date:"2026-10-20", sets:{flat_press:[{w:35,r:12},{w:35,r:12},{w:35,r:12},{w:35,r:12}]}}], [10,15,20,25,30,35,40,45,50]);
+  const s1 = suggest(["flat_press","Flat",4,"8–12",35,"",""], [{date:"2026-10-20", sets:{flat_press:[{w:35,r:12},{w:35,r:12},{w:35,r:12},{w:35,r:12}]}}], g50);
   assert.equal(s1.w, 40);
-  const s2 = suggest(["bb_bench","BB",4,"8–12",95,"",""], [{date:"2026-10-20", sets:{bb_bench:[{w:95,r:12},{w:95,r:12},{w:95,r:12},{w:95,r:12}]}}], [10,15,20]);
+  const s2 = suggest(["bb_bench","BB",4,"8–12",95,"",""], [{date:"2026-10-20", sets:{bb_bench:[{w:95,r:12},{w:95,r:12},{w:95,r:12},{w:95,r:12}]}}], {...g50, barbell:{bar:45, plateMin:2.5, max:300}});
   assert.equal(s2.w, 100);
+  const s3 = suggest(["kb_swing","KB",4,"8–12",35,"",""], [{date:"2026-10-20", sets:{kb_swing:[{w:35,r:12},{w:35,r:12},{w:35,r:12},{w:35,r:12}]}}], {...g50, kettlebells:[20,35,53]});
+  assert.equal(s3.w, 53);
 });

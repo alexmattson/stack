@@ -32,7 +32,6 @@ export function SchedulePage({ data, onBack, onPickDate }){
       <div className="pagehead" style={{padding:"4px 0 8px"}}><IconButton name="back" label="Previous month" onClick={() => move(-1)}/><div className="ttl"><b>{new Date(ym.y, ym.m, 1).toLocaleDateString(undefined, {month:"long", year:"numeric"})}</b></div><IconButton name="next" label="Next month" onClick={() => move(1)}/></div>
       <Calendar y={ym.y} m={ym.m} plan={plan} program={program} onPick={onPickDate}/>
       <p className="legend"><span className="sw done"/>Logged <span className="sw plan"/>Planned <span className="sw rest"/>Rest <span className="sw miss"/>Missed</p>
-      <p className="muted" style={{fontSize:".85rem"}}>The rotation follows your log: the next workout is always the one after the last you logged, so a missed day shifts the plan instead of skipping it.</p>
     </section>
   );
 }

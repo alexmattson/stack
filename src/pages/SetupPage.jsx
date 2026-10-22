@@ -1,11 +1,32 @@
 import React, { useState, useEffect } from "react";
 import { PageHeader, BackButton, Card, Pill, Segmented, Toggle, RowCard, IconBubble, IMG, Icon } from "../components/ui.jsx";
-import { EQUIPMENT } from "../lib/program.js";
+import { EQUIPMENT, KB_WEIGHTS, NEEDS_WEIGHTS } from "../lib/program.js";
 import { DOW } from "../lib/dates.js";
 
 const ALL_W = Array.from({length:20}, (_, i) => (i + 1) * 5);
 const GOAL_SUB = {size:"Moderate weight, 8–12 reps on the big lifts. Muscle.", strength:"Heavier, 5–8 reps on the big lifts, longer rests. Power.", endurance:"Lighter, 12–20 reps. Conditioning and tone."};
 const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+
+// What you own for a piece of equipment, shown inline under its toggle once it's on.
+const Inventory = ({ kind, g, setG }) => {
+  if (kind === "kettlebells") return (
+    <div className="inv"><div className="eyebrow">Kettlebells · lb</div>
+      <div className="wgrid">{KB_WEIGHTS.map(w => <button key={w} aria-pressed={g.kettlebells.includes(w)} onClick={() => setG({...g, kettlebells: g.kettlebells.includes(w) ? g.kettlebells.filter(x => x !== w) : [...g.kettlebells, w]})}>{w}</button>)}</div>
+    </div>);
+  if (kind === "barbell") { const b = g.barbell; const set = patch => setG({...g, barbell:{...b, ...patch}}); return (
+    <div className="inv"><div className="eyebrow">Bar &amp; plates</div>
+      <div className="invrow"><span>Bar weight</span><div className="segc small">{[[45,"45"],[35,"35"],[15,"15"]].map(([v, l]) => <button key={v} aria-pressed={b.bar === v} onClick={() => set({bar:v})}>{l} lb</button>)}</div></div>
+      <div className="invrow"><span>Smallest plate</span><div className="segc small">{[[1.25,"1¼"],[2.5,"2½"],[5,"5"],[10,"10"]].map(([v, l]) => <button key={v} aria-pressed={b.plateMin === v} onClick={() => set({plateMin:v})}>{l}</button>)}</div></div>
+      <div className="invrow"><span>Max you can load</span><div className="numin"><input type="number" inputMode="numeric" step="5" value={b.max} onChange={e => set({max:+e.target.value || 0})}/><small>lb</small></div></div>
+      <p className="muted" style={{fontSize:".78rem", margin:0}}>Barbell lifts move up by two of your smallest plate and stop at the max.</p>
+    </div>); }
+  if (kind === "cable") { const c = g.cable; const set = patch => setG({...g, cable:{...c, ...patch}}); return (
+    <div className="inv"><div className="eyebrow">Cable stack</div>
+      <div className="invrow"><span>Heaviest setting</span><div className="numin"><input type="number" inputMode="numeric" step="5" value={c.max} onChange={e => set({max:+e.target.value || 0})}/><small>lb</small></div></div>
+      <div className="invrow"><span>Steps of</span><div className="segc small">{[[5,"5"],[10,"10"],[15,"15"]].map(([v, l]) => <button key={v} aria-pressed={c.inc === v} onClick={() => set({inc:v})}>{l} lb</button>)}</div></div>
+    </div>); }
+  return null;
+};
 
 // Floating save pill: appears when something changed, turns green once the plan is rebuilt.
 const FloatingSave = ({ dirty, state, onSave }) => {
@@ -23,7 +44,8 @@ export function SetupPage({ data, onBack }){
   const equip = new Set(g.equipment || []);
   const toggleEquip = k => { const n = new Set(equip); n.has(k) ? n.delete(k) : n.add(k); setG({...g, equipment:[...n], bar:n.has("bar")}); };
   const save = async () => {
-    if (!g.dumbbells.length && !equip.has("barbell") && !equip.has("kettlebell") && !equip.has("cable")) return setErr("Pick at least one dumbbell weight, or other weighted equipment.");
+    if (!g.dumbbells.length && !equip.has("barbell") && !(equip.has("kettlebell") && g.kettlebells.length) && !equip.has("cable")) return setErr("Pick at least one dumbbell weight, or other weighted equipment.");
+    if (equip.has("kettlebell") && !g.kettlebells.length) return setErr("Pick the kettlebell weights you have.");
     if (!p.focus.length) return setErr("Pick at least one area to train.");
     setErr(""); setState("saving");
     try { await api.saveSetup(g, {...p, bodyweight:+p.bodyweight || 150}); setState("saved"); setTimeout(() => setState("idle"), 2200); } catch (e) { setState("idle"); setErr("Saved here, but couldn't sync: " + api.friendlyDbError(e)); }
@@ -61,7 +83,11 @@ export function SetupPage({ data, onBack }){
       <p className="muted" style={{fontSize:".82rem", margin:"8px 0 0"}}>{g.bench === "incline" ? "Incline unlocks incline presses, chest-supported rows and incline curls." : g.bench === "flat" ? "Flat: presses on the bench; incline work is swapped out." : "No bench: presses move to the floor."}</p>
 
       <h2>Other equipment</h2>
-      <Card style={{display:"grid", gap:14}}>{EQUIPMENT.map(e => <RowCard key={e.key} icon={<IconBubble name={e.key === "bar" ? "bar" : e.key === "cable" ? "pull" : "gear"}/>} title={e.name} sub={e.sub} right={<Toggle on={equip.has(e.key)} onChange={() => toggleEquip(e.key)} label={e.name}/>}/>)}</Card>
+      <Card style={{display:"grid", gap:14}}>{EQUIPMENT.map(e => { const inv = NEEDS_WEIGHTS[e.key]; const shownBefore = inv && EQUIPMENT.slice(0, EQUIPMENT.indexOf(e)).some(x => NEEDS_WEIGHTS[x.key] === inv && equip.has(x.key)); return (
+        <React.Fragment key={e.key}>
+          <RowCard icon={<IconBubble name={e.key === "bar" ? "bar" : e.key === "cable" ? "pull" : "gear"}/>} title={e.name} sub={e.sub} right={<Toggle on={equip.has(e.key)} onChange={() => toggleEquip(e.key)} label={e.name}/>}/>
+          {inv && equip.has(e.key) && !shownBefore && <Inventory kind={inv} g={g} setG={setG}/>}
+        </React.Fragment>); })}</Card>
       {err && <div className="status">{err}</div>}
       <FloatingSave dirty={dirty} state={state} onSave={save}/>
     </section>

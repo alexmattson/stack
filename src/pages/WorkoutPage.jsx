@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { PageHeader, BackButton, IconButton, Card, Pill, Icon, IconBubble, BigInput, Status, useStatus, useBeep } from "../components/ui.jsx";
+import { PageHeader, BackButton, IconButton, Card, Pill, Icon, IconBubble, BigInput, Status, useStatus, useBeep, IMG } from "../components/ui.jsx";
 import { useRestTimer } from "../hooks/useRestTimer.js";
 import { fmtDate } from "../lib/dates.js";
 import { exImg, howTo, TIMED } from "../lib/program.js";
@@ -14,8 +14,23 @@ const RestBar = ({ timer, nextText, onSkip }) => (
   </div>
 );
 
-// The current set, front and center.
-export function NowCard({ wo, w, r, setW, setR, onDone, status, timer, nextText, onSkipRest, busy }){
+// Entry point to focus mode: start / continue / done, with both characters.
+export function StartCard({ wo, onStart, timer, nextText, onSkipRest }){
+  const done = wo.doneCount >= wo.total && wo.total > 0; const started = wo.doneCount > 0 && !done;
+  return (
+    <div className={`startcard ${done ? "done" : ""}`}>
+      <div className="txt">
+        <div className="eyebrow">{done ? "Complete" : started ? "In progress" : "Ready"}</div>
+        <h2>{done ? `${wo.day.name} done` : started ? `${wo.doneCount} of ${wo.total} sets` : `${wo.total} sets · ~${Math.round(wo.total * 2)} min`}</h2>
+        <p>{done ? "All sets logged. Eat, sleep, grow." : started ? "Pick up where you left off." : "One set at a time, rest on a timer."}</p>
+        <Pill onClick={onStart}><Icon name="bolt" className="gicon"/><span>{done ? "Review" : started ? "Continue" : "Start workout"}</span></Pill>
+      </div>
+      <div className="art">{done ? <img className="solo" src={IMG("hero-done.png")} alt=""/> : <><img className="b" src={IMG("login-run.png")} alt=""/><img className="a" src={IMG("login-leap.png")} alt=""/></>}</div>
+      <RestBar timer={timer} nextText={nextText} onSkip={onSkipRest}/>
+    </div>
+  );
+}
+function NowCardUnused({ wo, w, r, setW, setR, onDone, status, timer, nextText, onSkipRest, busy }){
   const ex = wo.day.ex[wo.ptr.ei]; if (!ex) return null;
   const [key, name, n, reps] = ex; const bw = wo.isBW(key); const sv = wo.savedSet(key, wo.ptr.si);
   const allDone = !wo.nextOpen();
@@ -30,7 +45,7 @@ export function NowCard({ wo, w, r, setW, setR, onDone, status, timer, nextText,
         <BigInput id="n-w" label="Weight lb" value={bw ? "" : w} onChange={setW} step={5} disabled={bw} placeholder={bw ? "BW" : ""}/>
         <BigInput id="n-r" label={TIMED.has(key) ? "Seconds" : "Reps"} value={r} onChange={setR} step={1}/>
       </div>
-      <button className="done-btn" onClick={onDone} disabled={busy}>{sv ? "Update set" : "Done · start rest"}</button>
+      <button className="done-btn" onClick={onDone} disabled={busy}>{sv ? "Update set" : "Finish set"}</button>
       <div className={`exstatus ${status.ok ? "ok" : status.text ? "bad" : ""}`} style={{textAlign:"center", margin:"8px 0 0"}}>{status.text}</div>
       <RestBar timer={timer} nextText={nextText} onSkip={onSkipRest}/>
     </div>
@@ -106,8 +121,7 @@ export function WorkoutPage({ data, wo, date, onBack, onFocus }){
   return (
     <section id="log">
       <PageHeader left={<BackButton onClick={onBack}/>} title={`Day ${data.program.findIndex(d => d.key === wo.day.key) + 1} ${wo.day.name}`} sub={`${wo.day.focus} · ${fmtDate(date)}`} right={<IconButton name="expand" label="Focus mode" title="Focus mode" onClick={() => onFocus()}/>}/>
-      <Card className="rowcard" style={{marginBottom:14}}><IconBubble name={/Pull|Lower B/.test(wo.day.name) ? "pull" : "push"}/><div className="grow"><b>{wo.day.name}</b><small>{wo.day.focus} · {wo.day.ex.length} lifts · ~{Math.round(wo.total * 2)} min</small></div><span className="chip">{wo.total} sets</span></Card>
-      <NowCard wo={wo} w={w} r={r} setW={setW} setR={setR} status={status} busy={busy} timer={timer} nextText={nextText} onSkipRest={() => timer.stop()} onDone={() => cur && persist(cur[0], wo.ptr.si, +w || 0, +r || 0, false)}/>
+      <StartCard wo={wo} timer={timer} nextText={nextText} onSkipRest={() => timer.stop()} onStart={() => { const p = wo.nextOpen(); if (p) wo.setPtr(p); onFocus(); }}/>
       <div>{wo.day.ex.map((ex, ei) => <ExerciseCard key={ex[0] + ei} ex={ex} ei={ei} wo={wo} draft={draft} setDraft={setDraft} status={exStatus} onSave={(key, i, wv, rv) => persist(key, i, wv, rv, true)} onFocus={ei => { let si = 0; const ex = wo.day.ex[ei]; for (let k = 0; k < ex[2]; k++) if (!wo.savedSet(ex[0], k)) { si = k; break; } wo.setPtr({ei, si}); onFocus(); }}/>)}</div>
       <textarea className="note" value={note} onChange={e => setNote(e.target.value)} placeholder="Session notes: energy, sleep, what felt heavy (saved with Finish)"/>
       <Pill big onClick={finish}>Finish session</Pill>

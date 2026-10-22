@@ -1,5 +1,5 @@
 // Double-progression engine with stall and fatigue handling. Pure: takes history, returns targets.
-import { BODYWEIGHT_EX, CORE_BW, TIMED, LIB_BY_KEY } from "./program.js";
+import { BODYWEIGHT_EX, CORE_BW, TIMED, LIB_BY_KEY, ladder } from "./program.js";
 
 export const e1rm = (w, r) => w * (1 + r / 30);
 export function parseRange(r){ if (r === "max") return null; const m = r.split("–").map(Number); return {lo:m[0], hi:m[1] || m[0]}; }
@@ -11,15 +11,14 @@ export function historyFor(sessions, exKey){
 }
 
 // dbs: sorted list of available dumbbells
-export function suggest(ex, sessions, dbs){
+export function suggest(ex, sessions, gear){
   const [key, , n, rangeStr, startW] = ex;
   const range = parseRange(rangeStr);
   const hist = historyFor(sessions, key);
   const fill = v => Array.from({length:n}, () => v);
-  const isDB = !LIB_BY_KEY[key] || LIB_BY_KEY[key].equip === "db";
-  const nextDB = w => { if (!isDB) return w + 5; for (const x of dbs) if (x > w) return x; return null; };
-  const prevDB = w => { if (!isDB) return Math.max(5, w - 10); let p = null; for (const x of dbs) if (x < w) p = x; return p ?? (dbs[0] ?? w); };
-  const maxDB = dbs.length ? dbs[dbs.length - 1] : 0;
+  const equip = LIB_BY_KEY[key] ? LIB_BY_KEY[key].equip : "db";
+  const lad = ladder(equip, gear);
+  const nextDB = lad.next, prevDB = lad.prev, maxDB = lad.max;
 
   if (BODYWEIGHT_EX.has(key)) {
     const ab = CORE_BW.has(key), timed = TIMED.has(key);
@@ -52,7 +51,7 @@ export function suggest(ex, sessions, dbs){
   if (allHitTop) {
     const up = nextDB(lastW);
     if (up) return {w:up, reps:fill(range.lo), why:`You hit ${range.hi}+ on every set at ${lastW} lb. Weight goes up to ${up}; reps reset to ${range.lo}.`};
-    return {w:lastW, reps:lastReps.map(r => r + 1), why:`Maxed out your ${maxDB}s. Add a rep per set, lower for 3 seconds, pause at the bottom. Time to buy heavier dumbbells.`};
+    return {w:lastW, reps:lastReps.map(r => r + 1), why: equip === "db" || equip === "kb" ? `Maxed out your ${maxDB}s. Add a rep per set, lower for 3 seconds, pause at the bottom. Time to buy heavier.` : `At your max load (${maxDB} lb). Add a rep per set and slow the lowering; update Setup if you get more plates.`};
   }
   if (stalled) { const w = prevDB(lastW); return {w, reps:fill(range.hi), why:`Three sessions at ${lastW} lb with no rep gain. Drop to ${w} lb, own the top of the range, then climb back.`}; }
   const reps = lastReps.map(r => Math.min(range.hi, r + 1));

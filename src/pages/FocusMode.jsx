@@ -53,7 +53,7 @@ export function FocusMode({ data, wo, onBack, onHome }){
               <BigInput id="f-w" label="Weight lb" value={bw ? "" : w} onChange={setW} step={5} disabled={bw} placeholder={bw ? "BW" : ""}/>
               <BigInput id="f-r" label={TIMED.has(key) ? "Seconds" : "Reps"} value={r} onChange={setR} step={1}/>
             </div>
-            <button className="done-btn" onClick={done} disabled={busy}>{sv ? "Update · start rest" : "Done · start rest"}</button>
+            <button className="done-btn" onClick={done} disabled={busy}>{sv ? "Update set" : "Finish set"}</button>
             <div className={`exstatus ${status.text ? "bad" : ""}`} style={{textAlign:"center", marginTop:8}}>{status.text}</div>
           </div>
         )}

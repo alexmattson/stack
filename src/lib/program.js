@@ -101,6 +101,7 @@ export const LIB = [
   EX({key:"ab_rollout",   name:"Ab wheel rollouts",       group:"abs", region:"core", kind:"iso", needs:["abwheel"], bw:true, equip:"bw", img:"abs", q:"ab wheel rollout form", g:"https://exrx.net/WeightExercises/RectusAbdominis/BWRollout", pri:0}),
 ];
 // Equipment the Setup page can toggle. Dumbbells and bench type are chosen separately.
+export const NEEDS_WEIGHTS = {barbell:"barbell", ezbar:"barbell", kettlebell:"kettlebells", cable:"cable"};
 export const EQUIPMENT = [
   {key:"bar",        name:"Pull-up bar",          sub:"Chin-ups, pull-ups, hanging ab work"},
   {key:"barbell",    name:"Barbell & plates",     sub:"Rows, presses, deadlifts; big lifts in 5 lb steps"},
@@ -155,15 +156,13 @@ export function buildProgram(opts){
   const have = new Set(gear.equipment || (gear.bar ? ["bar"] : []));
   if (gear.bar) have.add("bar");
   if (gear.bench !== "none") have.add("bench"); if (gear.bench === "incline") have.add("incline");
-  const ok = e => e.needs.every(n => have.has(n)) && !e.unless.some(n => have.has(n)) && (e.bw || e.equip !== "db" || gear.dumbbells.length);
+  const ok = e => e.needs.every(n => have.has(n)) && !e.unless.some(n => have.has(n)) && (e.bw || (e.equip === "db" ? gear.dumbbells.length > 0 : e.equip === "kb" ? (gear.kettlebells||[]).length > 0 : true));
   const rep = {size:{compound:"8–12", iso:"12–15"}, strength:{compound:"5–8", iso:"8–12"}, endurance:{compound:"12–15", iso:"15–20"}}[prog.goal || "size"];
   const liftsPer = {short:4, standard:6, long:8}[prog.length || "standard"];
   const setsFor = e => (prog.goal === "strength" && e.kind === "compound") ? 4 : e.kind === "compound" ? 4 : 3;
   const expMult = {new:0.8, some:1, experienced:1.2}[prog.experience || "some"];
   const bwMult = Math.pow((prog.bodyweight || 150) / 150, 0.7);
-  const dbl = gear.dumbbells.slice().sort((a,b)=>a-b);
-  const nearest = w => { if (!dbl.length) return w; let best = dbl[0]; for (const x of dbl) if (x <= w) best = x; return best; };
-  const startFor = e => { if (e.bw) return 0; const w = Math.max(5, Math.round(e.start * expMult * bwMult / 5) * 5); return e.equip === "db" ? nearest(w) : w; };
+  const startFor = e => { if (e.bw) return 0; const w = Math.max(5, Math.round(e.start * expMult * bwMult / 5) * 5); return ladder(e.equip, gear).nearest(w); };
   const repsFor = e => e.bw && e.region !== "core" ? "max" : e.timed ? "20–45" : e.region === "core" && e.bw ? "10–15" : rep[e.kind];
   const toRow = (e, sets) => [e.key, e.name, sets || setsFor(e), repsFor(e), startFor(e), e.q, e.g];
 
@@ -198,7 +197,24 @@ export const COMPOUND = new Set(LIB.filter(e => e.kind === "compound" && e.regio
 export const EX_IMG = Object.fromEntries(LIB.map(e => [e.key, e.img]));
 export const exImg = key => `${(typeof import.meta !== "undefined" && import.meta.env && import.meta.env.BASE_URL) || "/"}img/ex-${EX_IMG[key] || "press"}.png`;
 export const howTo = q => "https://www.youtube.com/results?search_query=" + encodeURIComponent("how to " + q);
-export const GEAR_DEFAULTS = {dumbbells:[10,15,20,25,30,35,40,45,50], bar:true, bench:"incline", equipment:["bar"]};
+export const GEAR_DEFAULTS = {dumbbells:[10,15,20,25,30,35,40,45,50], bar:true, bench:"incline", equipment:["bar"],
+  kettlebells:[], barbell:{bar:45, plateMin:2.5, max:300}, cable:{max:200, inc:10}};
+export const KB_WEIGHTS = [10,15,20,25,30,35,40,45,50,53,60,70,80];
+export const normalizeGear = g => ({...GEAR_DEFAULTS, ...g, barbell:{...GEAR_DEFAULTS.barbell, ...(g.barbell||{})}, cable:{...GEAR_DEFAULTS.cable, ...(g.cable||{})}, kettlebells:Array.isArray(g.kettlebells)?g.kettlebells:[], equipment:Array.isArray(g.equipment)?g.equipment:(g.bar!==false?["bar"]:[])});
+// How a lift's weight can move for the equipment it uses: {next(w), prev(w), nearest(w), max}
+export function ladder(equip, gear){
+  const list = equip === "kb" ? (gear.kettlebells||[]).slice().sort((a,b)=>a-b) : gear.dumbbells.slice().sort((a,b)=>a-b);
+  if (equip === "db" || equip === "kb") return {
+    next: w => { for (const x of list) if (x > w) return x; return null; },
+    prev: w => { let p = null; for (const x of list) if (x < w) p = x; return p ?? (list[0] ?? w); },
+    nearest: w => { if (!list.length) return w; let b = list[0]; for (const x of list) if (x <= w) b = x; return b; },
+    max: list.length ? list[list.length - 1] : 0, list };
+  if (equip === "bb") { const bb = gear.barbell || GEAR_DEFAULTS.barbell; const inc = (bb.plateMin || 2.5) * 2; const lo = bb.bar || 45; const hi = bb.max || 300;
+    return { next: w => w + inc <= hi ? w + inc : null, prev: w => Math.max(lo, w - inc * 2), nearest: w => Math.min(hi, Math.max(lo, lo + Math.round((w - lo) / inc) * inc)), max: hi }; }
+  if (equip === "cable") { const c = gear.cable || GEAR_DEFAULTS.cable; const inc = c.inc || 10; const hi = c.max || 200;
+    return { next: w => w + inc <= hi ? w + inc : null, prev: w => Math.max(inc, w - inc * 2), nearest: w => Math.min(hi, Math.max(inc, Math.round(w / inc) * inc)), max: hi }; }
+  return { next: w => w + 5, prev: w => Math.max(5, w - 5), nearest: w => w, max: Infinity };
+}
 // Stored session plans are rows of objects (Firestore forbids nested arrays); in code they are arrays.
 export const planToStore = ex => ex.map(e => Array.isArray(e) ? {key:e[0], name:e[1], sets:e[2], reps:e[3], w:e[4], q:e[5], g:e[6]} : e);
 export const planFromStore = pl => (pl || []).map(e => Array.isArray(e) ? e : [e.key, e.name, e.sets, e.reps, e.w, e.q, e.g]);

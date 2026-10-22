@@ -6,7 +6,7 @@ import { REST } from "../lib/progression.js";
 
 // State for one workout (a date + a program day): the frozen exercise list, saved sets, the cursor, drafts.
 export function useWorkout(data, date, dayIdx){
-  const { sessions, program, dbs, api } = data;
+  const { sessions, program, api } = data;
   const id = `${date}_${program[dayIdx]?.key || "d1"}`;
   const session = useMemo(() => sessions.find(s => s.id === id), [sessions, id]);
   const day = useMemo(() => {
@@ -25,7 +25,7 @@ export function useWorkout(data, date, dayIdx){
   const [ptr, setPtr] = useState({ei:0, si:0});
   useEffect(() => { setPtr(nextOpen() || {ei:0, si:0}); }, [id]); // eslint-disable-line
   const flatIndex = p => { let n = 0; for (let ei = 0; ei < p.ei; ei++) n += day.ex[ei][2]; return n + p.si; };
-  const suggestions = useMemo(() => Object.fromEntries(day.ex.map(e => [e[0], suggest(e, sessions, dbs)])), [day, sessions, dbs]);
+  const suggestions = useMemo(() => Object.fromEntries(day.ex.map(e => [e[0], suggest(e, sessions, data.gear)])), [day, sessions, data.gear]);
   const restFor = (key, isLast) => isLast ? REST.last : COMPOUND.has(key) ? REST.compound : REST.iso;
   const save = (key, i, w, r) => api.saveSet(id, date, dayIdx, key, i, w, r);
   const finish = (pending, note) => api.finish(id, date, dayIdx, pending, note);

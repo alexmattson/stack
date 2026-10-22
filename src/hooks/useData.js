@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, useRef, useCallback } from "react";
 import { userDB, friendlyDbError } from "../lib/firebase.js";
-import { buildProgram, PROGRAM_DEFAULTS, GEAR_DEFAULTS, planToStore } from "../lib/program.js";
+import { buildProgram, PROGRAM_DEFAULTS, GEAR_DEFAULTS, planToStore, normalizeGear } from "../lib/program.js";
 import { today } from "../lib/dates.js";
 
 // Everything the app knows about the signed-in user, kept live from Firestore.
@@ -19,7 +19,7 @@ export function useData(uid){
     const offs = [
       db.watchCol("sessions", s => { setSessions(s); setLoaded(true); }, e => setError("Lost connection to your log: " + (e.message || ""))),
       db.watchCol("bodylog", setBodylog, () => {}),
-      db.watchDoc("settings/equipment", d => { if (d && Array.isArray(d.dumbbells)) setGear({dumbbells:d.dumbbells.slice(), bar:d.bar !== false, bench:d.bench || "incline", equipment:Array.isArray(d.equipment) ? d.equipment.slice() : (d.bar !== false ? ["bar"] : [])}); }, () => {}),
+      db.watchDoc("settings/equipment", d => { if (d && Array.isArray(d.dumbbells)) setGear(normalizeGear(d)); }, () => {}),
       db.watchDoc("settings/program", d => { if (d && Array.isArray(d.focus)) setProg({...PROGRAM_DEFAULTS, ...d}); }, () => {}),
       db.watchDoc("settings/schedule", d => { if (d && Array.isArray(d.trainingDays)) setTrainingDays(d.trainingDays.slice()); }, () => {}),
     ];
