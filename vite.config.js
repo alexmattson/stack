@@ -18,7 +18,7 @@ export default defineConfig({
           { src: "img/icon-512-v2.png", sizes: "512x512", type: "image/png", purpose: "any" }
         ]
       },
-      workbox: { globPatterns: ["**/*.{js,css,html,png}"], navigateFallback: "/stack/index.html" }
+      workbox: { globPatterns: ["**/*.{js,css,html,png}"], navigateFallback: "/stack/index.html", skipWaiting: true, clientsClaim: true, cleanupOutdatedCaches: true }
     })
   ]
 });
