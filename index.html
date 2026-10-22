@@ -515,18 +515,43 @@ td.r,th.r{text-align:right}
   </div>
 
   <button class="pill big" id="g-save" style="margin-top:16px">Save &amp; rebuild plan</button>
-  <h2>Account &amp; sync</h2>
-  <div class="card" style="display:grid;gap:12px">
-    <div class="rowcard"><span class="icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg></span><div class="grow"><b id="acct-name">Not signed in</b><small id="acct-sub">Your log is saved on this device only.</small></div></div>
-    <button class="pill" id="acct-google">Sign in with Google to sync</button>
-    <button class="pill ghost" id="acct-out" hidden>Manage account</button>
-    <button class="pill ghost" id="acct-import" hidden>Import log from the old app</button>
-    <div class="status" id="acct-status"></div>
+
   </div>
   <div class="status" id="g-status"></div>
 
   <h2>Your plan</h2>
   <div id="g-plan"></div>
+</section>
+
+<!-- ===== SETTINGS ===== -->
+<section id="settings" hidden>
+  <div class="pagehead">
+    <button class="roundbtn" id="st-home" aria-label="Home">‹</button>
+    <div class="ttl"><b>Account</b><small>Sync, data and app details</small></div>
+    <div class="roundbtn ghost" aria-hidden="true"></div>
+  </div>
+
+  <div class="card aqua rowcard" style="margin-bottom:16px"><span class="icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg></span><div class="grow"><b id="acct-name">Not signed in</b><small id="acct-sub">Your log is saved on this device only.</small></div></div>
+  <div style="display:grid;gap:8px">
+    <button class="pill big" id="acct-google">Continue with Google</button>
+    <button class="pill ghost big" id="acct-out" hidden>Sign out</button>
+  </div>
+  <div class="status" id="acct-status"></div>
+
+  <h2>Your data</h2>
+  <div class="card" style="display:grid;gap:10px">
+    <div class="rowcard"><span class="icon"><svg viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M4 21h16"/></svg></span><div class="grow"><b>Export</b><small>Download every session, weigh-in and setting as a file.</small></div><button class="pill ghost" id="data-export" style="padding:9px 14px">Export</button></div>
+    <div class="rowcard" id="import-row" hidden><span class="icon"><svg viewBox="0 0 24 24"><path d="M12 21V9M7 14l5-5 5 5M4 3h16"/></svg></span><div class="grow"><b>Import old log</b><small>Bring in the workout from the first version of the app.</small></div><button class="pill ghost" id="acct-import" style="padding:9px 14px">Import</button></div>
+  </div>
+
+  <h2>Training</h2>
+  <div class="card" style="display:grid;gap:10px">
+    <div class="rowcard"><span class="icon"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg></span><div class="grow"><b>Training days</b><small id="st-days">Mon, Tue, Thu, Fri</small></div><button class="pill ghost" id="st-sched" style="padding:9px 14px">Edit</button></div>
+    <div class="rowcard"><span class="icon"><svg viewBox="0 0 24 24"><path d="M4 7h3v10H4zM17 7h3v10h-3zM7 10h10v4H7zM2 9h2v6H2zM20 9h2v6h-2z"/></svg></span><div class="grow"><b>Equipment</b><small id="st-gear">10–50 lb · bar · incline bench</small></div><button class="pill ghost" id="st-gearbtn" style="padding:9px 14px">Edit</button></div>
+  </div>
+
+  <h2>About</h2>
+  <div class="card rowcard"><span class="logo" style="width:40px;height:40px"><svg viewBox="0 0 48 48" aria-hidden="true"><defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#1c5467"/><stop offset="1" stop-color="#2c7f98"/></linearGradient></defs><circle cx="24" cy="24" r="24" fill="url(#lg)"/><rect x="12" y="30" width="24" height="6" rx="3" fill="#ffffff" opacity=".55"/><rect x="9" y="22" width="30" height="6" rx="3" fill="#ffffff" opacity=".8"/><rect x="6" y="14" width="36" height="6" rx="3" fill="#ffd27a"/><circle cx="42" cy="17" r="4" fill="#f6a33e"/></svg></span><div class="grow"><b>Stack</b><small>Progressive dumbbell training · built for the upper body you came for.</small></div></div>
 </section>
 </div>
 
@@ -738,8 +763,9 @@ const ABS = new Set(["wt_crunch","knee_raise","leg_raise","side_plank","side_ben
 // ---------- views ----------
 function showTab(name){
   document.querySelectorAll('[role="tab"]').forEach(x => x.setAttribute("aria-selected", x.dataset.tab===name));
-  ["home","log","schedule","progress","gear"].forEach(id => $(id).hidden = id !== name);
+  ["home","log","schedule","progress","gear","settings"].forEach(id => $(id).hidden = id !== name);
   if (name === "gear") renderGear();
+  if (name === "settings") renderSettings();
   if (name === "home") renderHome();
   if (name === "log") renderExercises();
   if (name === "progress") renderProgress();
@@ -1301,7 +1327,7 @@ function bindData(){
     if (!$("home").hidden) renderHome();
     if (!$("schedule").hidden) renderSchedule();
     if (!$("progress").hidden) renderProgress();
-    $("acct-import").hidden = sessions.length > 0 || !window.SEED;
+    $("import-row").hidden = sessions.length > 0 || !window.SEED;
   }, e => storageState("Lost connection to your log: " + (e && e.message || "unknown"))));
   unsubs.push(db.collection("bodylog").onSnapshot(snap => {
     bodylog = snap.docs.map(d => ({id:d.id, ...d.data()}));
@@ -1329,7 +1355,7 @@ function hideLogin(){ $("login").hidden = true; document.body.style.overflow = "
 function renderAccount(u){
   const g = u && !u.isAnonymous;
   $("acct-name").textContent = g ? (u.displayName || u.email || "Signed in") : "Device only";
-  $("acct-sub").textContent = g ? `Synced as ${u.email || "your Google account"} across every device you sign in on.` : "Your log is saved to this device. Sign in with Google to sync it to your other devices.";
+  $("acct-sub").textContent = g ? `${u.email || "Google account"} · progress follows you everywhere.` : "Saved on this device. Sign in to keep it everywhere you train.";
   $("acct-google").hidden = !!g; $("acct-out").hidden = !g;
 }
 (async () => {
@@ -1380,7 +1406,21 @@ $("acct-google").addEventListener("click", googleSignIn);
 $("login-google").addEventListener("click", googleSignIn);
 $("login-skip").addEventListener("click", () => { try { localStorage.setItem(SKIP_KEY, "1"); } catch(e) {} if (loginResolve) { const r = loginResolve; loginResolve = null; r(); } else hideLogin(); });
 $("login-back").addEventListener("click", hideLogin);
-$("home-acct").addEventListener("click", () => showLogin(true));
+$("home-acct").addEventListener("click", () => showTab("settings"));
+$("st-home").addEventListener("click", () => showTab("home"));
+$("st-sched").addEventListener("click", () => showTab("schedule"));
+$("st-gearbtn").addEventListener("click", () => showTab("gear"));
+function renderSettings(){
+  $("st-days").textContent = trainingDays.length ? trainingDays.map(d=>DOW[d]).join(", ") : "None set";
+  const l = dbList(); $("st-gear").textContent = `${l.length ? l[0]+"–"+l[l.length-1]+" lb" : "no dumbbells"} · ${gear.bar ? "bar" : "no bar"} · ${gear.bench==="none" ? "no bench" : gear.bench+" bench"}`;
+  if (auth && auth.currentUser) renderAccount(auth.currentUser);
+  $("import-row").hidden = sessions.length > 0 || !window.SEED;
+}
+$("data-export").addEventListener("click", () => {
+  const data = {exportedAt:new Date().toISOString(), sessions, bodylog, settings:{schedule:{trainingDays}, equipment:gear}};
+  const blob = new Blob([JSON.stringify(data, null, 2)], {type:"application/json"});
+  const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = `stack-export-${today()}.json`; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+});
 $("login-out").addEventListener("click", async () => {
   try { localStorage.removeItem(SKIP_KEY); } catch(e) {}
   await auth.signOut();
