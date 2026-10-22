@@ -64,6 +64,9 @@ export function useData(uid){
     friendlyDbError,
   };
   const settingsKnown = Object.values(settingsSeen).every(v => v !== null);
+  const t = today();
+  const week = (() => { const dates = [...sessions.map(s => s.date), ...bodylog.map(b => b.date)].sort(); if (!dates.length) return 1; return Math.max(1, Math.floor((Date.now() - new Date(dates[0] + "T12:00:00")) / 864e5 / 7) + 1); })();
+  const todayAlert = trainingDays.includes(new Date().getDay()) && !sessions.some(s => s.date === t);
   const needsOnboarding = settingsKnown && !settingsSeen.program && !settingsSeen.equipment && sessions.length === 0;
-  return { sessions, bodylog, gear, prog, trainingDays, program, dbs, profile, isAdmin: profile.isAdmin === true, loaded: loaded && settingsKnown, needsOnboarding, error, api, today: today() };
+  return { sessions, bodylog, gear, prog, trainingDays, program, dbs, profile, isAdmin: profile.isAdmin === true, loaded: loaded && settingsKnown, needsOnboarding, error, api, today: t, week, todayAlert };
 }

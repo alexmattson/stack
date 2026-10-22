@@ -1,11 +1,10 @@
 import React, { useState } from "react";
-import { PageHeader, Logo, Card, Pill, Icon, IconBubble, IMG, Ring } from "../components/ui.jsx";
+import { PageHeader, Logo, Card, Pill, Icon, IconBubble, IMG, Ring, WeekBadge } from "../components/ui.jsx";
 import { DOW, today, addDays, fmtDate, weekStart, greeting, weekNumber } from "../lib/dates.js";
 import { buildPlan, sessionFor, sessionSetCount, sessionTotal, sessionComplete, plannedDayFor } from "../lib/plan.js";
 import { strengthSummary } from "../lib/progression.js";
 import { planFromStore } from "../lib/program.js";
 
-const WeekBadge = ({ n, alert }) => <div className={`roundbtn wkbadge ${alert ? "alert" : ""}`} title={alert ? "Program week · today's workout not logged yet" : "Program week"}><small>WK</small><b>{n}</b></div>;
 
 const DateStrip = ({ selected, onSelect, plan, sessions, program }) => {
   const t = today();
@@ -59,10 +58,9 @@ export function HomePage({ data, onOpenWorkout }){
   const bw = bodylog.filter(b => b.weight).sort((a, b) => a.date.localeCompare(b.date));
   const st = strengthSummary(sessions, Object.fromEntries(program.flatMap(d => d.ex.map(e => [e[0], e[1]]))));
   const ups = st.filter(x => x.delta > 0).length;
-  const alert = trainingDays.includes(new Date().getDay()) && !sessionFor(sessions, t);
   return (
     <section id="home">
-      <PageHeader left={<Logo/>} title="Stack" sub={greeting()} align="left" right={<WeekBadge n={weekNumber(sessions, bodylog)} alert={alert}/>}/>
+      <PageHeader left={<Logo/>} title="Stack" sub={greeting()} align="left" right={<WeekBadge week={data.week} alert={data.todayAlert}/>}/>
       {data.error && <p className="warn">{data.error}</p>}
       <div className="eyebrow">{new Date().toLocaleDateString(undefined, {weekday:"long", month:"long", day:"numeric"})}</div>
       <DateStrip selected={sel} onSelect={setSel} plan={plan} sessions={sessions} program={program}/>

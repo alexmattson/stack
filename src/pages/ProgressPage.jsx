@@ -1,11 +1,10 @@
 import React, { useState } from "react";
-import { PageHeader, BackButton, Card, IconBubble, Ring, Status, useStatus } from "../components/ui.jsx";
+import { PageHeader, BackButton, Card, IconBubble, Ring, Status, useStatus, WeekBadge } from "../components/ui.jsx";
 import { DOW, today, fmtDate, iso, weekStart, weekNumber } from "../lib/dates.js";
 import { strengthSummary } from "../lib/progression.js";
 import { BODYWEIGHT_EX, planFromStore } from "../lib/program.js";
 import { sessionSetCount } from "../lib/plan.js";
 
-const WeekBadge = ({ n }) => <div className="roundbtn wkbadge" title="Program week"><small>WK</small><b>{n}</b></div>;
 
 const WeeklyBars = ({ sessions }) => {
   const ws = weekStart(); const t = today();
@@ -56,7 +55,7 @@ export function ProgressPage({ data, onBack }){
   const add = async () => { const w = +form.w, arm = +form.arm; if (!w && !arm) return setSt("Enter a weight or arm measurement."); try { await api.addBodylog(form.date, w, arm); setSt("Added.", true); setForm(f => ({...f, w:"", arm:""})); } catch (e) { setSt("Couldn't save."); } };
   return (
     <section id="progress">
-      <PageHeader left={<BackButton onClick={onBack}/>} title="My Progress" sub={new Date().toLocaleDateString(undefined, {weekday:"long", day:"numeric", month:"short"})} right={<WeekBadge n={weekNumber(sessions, bodylog)}/>}/>
+      <PageHeader left={<BackButton onClick={onBack}/>} title="My Progress" sub={new Date().toLocaleDateString(undefined, {weekday:"long", day:"numeric", month:"short"})} right={<WeekBadge week={data.week} alert={data.todayAlert}/>}/>
       <WeeklyBars sessions={sessions}/>
       <div className="tiles">
         <div className="tile aqua" style={{gridRow:"span 2"}}><div className="top"><IconBubble name="scale"/>Bodyweight</div><Sparkline bl={bl} start={prog.bodyweight}/><b>{lastW}<small>lb</small></b><small className="muted">{bl.length > 1 ? `${d0 >= 0 ? "+" : ""}${d0.toFixed(1)} lb since ${fmtDate(bl[0].date)}` : "Add weigh-ins below to see the trend"}</small></div>

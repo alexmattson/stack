@@ -53,6 +53,8 @@ export const PageHeader = ({ left, right, title, sub, align = "" }) => (
     {right || <RoundButton ghost/>}
   </div>
 );
+// Program week badge. The orange dot means today is a training day and the workout isn't logged yet.
+export const WeekBadge = ({ week, alert }) => <div className={`roundbtn wkbadge ${alert ? "alert" : ""}`} title={alert ? "Program week · today's workout not logged yet" : "Program week"}><small>WK</small><b>{week}</b></div>;
 export const BackButton = ({ onClick, label = "Back" }) => <RoundButton onClick={onClick} aria-label={label}><Icon name="back" className="rb-icon"/></RoundButton>;
 export const IconButton = ({ name, label, onClick, title }) => <RoundButton onClick={onClick} aria-label={label} title={title}><Icon name={name} className="rb-icon"/></RoundButton>;
 

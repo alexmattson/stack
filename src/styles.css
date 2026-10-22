@@ -292,7 +292,7 @@ textarea{border-radius:18px;line-height:1.4;font-weight:500}
 .cal .c.out{opacity:.3}
 .cal .c.today{box-shadow:0 0 0 2px var(--bg),0 0 0 4px var(--teal)}
 .cal .c .d{font-size:.75rem;color:var(--muted);font-variant-numeric:tabular-nums;font-weight:600}
-.cal .c .l{font-weight:800;font-size:.85rem;line-height:1.05}
+.cal .c .l{font-weight:800;font-size:.8rem;line-height:1.05;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .cal .c .f{font-size:.6rem;color:var(--muted);line-height:1.1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .cal .c.rest{background:transparent;border:1.5px dashed var(--line)}
 .cal .c.rest .l{color:var(--muted);font-weight:600}
