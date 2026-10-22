@@ -485,3 +485,10 @@ input,textarea,select{font-size:max(16px,1em)}
 .fsave-row .pill{pointer-events:auto}
 .fsave-row .pill.big{flex:1;max-width:520px}
 .clearbtn{flex:0 0 auto;padding:16px 18px;background:#c2542f;color:#fff}
+
+/* next-set target on the rest card */
+.nexttarget{display:flex;justify-content:center;align-items:center;gap:14px;margin:2px 0 12px}
+.nexttarget span{display:flex;flex-direction:column;align-items:center;line-height:1}
+.nexttarget small{font-size:.66rem;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;font-weight:700;margin-bottom:4px}
+.nexttarget b{font-size:1.9rem;font-weight:800;font-variant-numeric:tabular-nums}
+.nexttarget .x{font-size:1.3rem;color:var(--muted);padding-top:12px}

@@ -99,10 +99,14 @@ export function useStatus(timeout = 4000){
 export function useBeep(){
   const ctx = React.useRef(null);
   const prime = () => { try { if (!ctx.current) ctx.current = new (window.AudioContext || window.webkitAudioContext)(); ctx.current.resume(); } catch (e) {} };
+  const tone = (freq, at, dur, vol = 0.25, type = "sine") => { const c = ctx.current; if (!c) return; const o = c.createOscillator(), g = c.createGain(); o.type = type; o.frequency.value = freq; o.connect(g); g.connect(c.destination);
+    g.gain.setValueAtTime(0.0001, c.currentTime + at); g.gain.exponentialRampToValueAtTime(vol, c.currentTime + at + .015); g.gain.exponentialRampToValueAtTime(0.0001, c.currentTime + at + dur); o.start(c.currentTime + at); o.stop(c.currentTime + at + dur + .02); };
+  // one short tick per second for the last ten seconds
+  const tick = n => { try { if (navigator.vibrate) navigator.vibrate(30); } catch (e) {} try { tone(n <= 3 ? 1046 : 880, 0, .08, 0.18); } catch (e) {} };
+  // "go": a rising three-note chime, clearly different from the ticks
   const beep = () => {
-    try { if (navigator.vibrate) navigator.vibrate([200, 100, 200]); } catch (e) {}
-    try { const c = ctx.current; if (!c) return; [0, .25, .5].forEach(t => { const o = c.createOscillator(), g = c.createGain(); o.frequency.value = 880; o.connect(g); g.connect(c.destination);
-      g.gain.setValueAtTime(0.0001, c.currentTime + t); g.gain.exponentialRampToValueAtTime(0.3, c.currentTime + t + .02); g.gain.exponentialRampToValueAtTime(0.0001, c.currentTime + t + .18); o.start(c.currentTime + t); o.stop(c.currentTime + t + .2); }); } catch (e) {}
+    try { if (navigator.vibrate) navigator.vibrate([250, 80, 250, 80, 400]); } catch (e) {}
+    try { tone(660, 0, .16, .3, "triangle"); tone(880, .18, .16, .3, "triangle"); tone(1320, .36, .45, .32, "triangle"); } catch (e) {}
   };
-  return { prime, beep };
+  return { prime, beep, tick };
 }

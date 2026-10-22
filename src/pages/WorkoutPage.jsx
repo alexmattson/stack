@@ -93,8 +93,8 @@ export function WorkoutPage({ data, wo, date, onBack, onFocus }){
   const [nextText, setNextText] = useState("");
   const [confirmClear, setConfirmClear] = useState(false); const [clearing, setClearing] = useState(false);
   const clearWorkout = async () => { setClearing(true); try { timer.stop(); await data.api.deleteSession(wo.id); setDraft({}); setNote(""); setConfirmClear(false); setFinish("Workout cleared. It will follow your current plan.", true); } catch (e) { setFinish(data.api.friendlyDbError(e)); } setClearing(false); };
-  const { prime, beep } = useBeep();
-  const timer = useRestTimer(beep);
+  const { prime, beep, tick } = useBeep();
+  const timer = useRestTimer(beep, tick);
   const cur = wo.day.ex[wo.ptr.ei];
   useEffect(() => { if (!cur) return; const [key] = cur; const sg = wo.suggestions[key]; const sv = wo.savedSet(key, wo.ptr.si); setW(wo.isBW(key) ? "" : String(sv ? sv.w : sg.w)); setR(String(sv ? sv.r : (sg.reps[wo.ptr.si] ?? ""))); }, [wo.ptr, wo.id]); // eslint-disable-line
   useEffect(() => { setDraft({}); timer.stop(); setNote(wo.session?.note || ""); }, [wo.id]); // eslint-disable-line
