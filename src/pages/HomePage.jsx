@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { PageHeader, Logo, Card, Pill, Icon, IconBubble, IMG, Ring, WeekBadge } from "../components/ui.jsx";
+import { PageHeader, Logo, Card, Pill, Icon, IconBubble, IMG, Ring, WeekBadge, GymSwitcher } from "../components/ui.jsx";
 import { DOW, today, addDays, fmtDate, weekStart, greeting, weekNumber } from "../lib/dates.js";
 import { buildPlan, sessionFor, sessionSetCount, sessionTotal, sessionComplete, plannedDayFor } from "../lib/plan.js";
 import { strengthSummary } from "../lib/progression.js";
@@ -83,6 +83,7 @@ export function HomePage({ data, onOpenWorkout }){
       {data.error && <p className="warn">{data.error}</p>}
       <div className="eyebrow">{new Date().toLocaleDateString(undefined, {weekday:"long", month:"long", day:"numeric"})}</div>
       <DateStrip selected={sel} onSelect={setSel} plan={plan} sessions={sessions} program={program}/>
+      {isTrain && !doneDay && <GymSwitcher data={data}/>}
       <HeroCard {...hero} onStart={() => onOpenWorkout(sel, ni)}/>
       {isTrain && sel === t && !doneDay && <CheckinCard data={data}/>}
       <div className="tiles">

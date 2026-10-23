@@ -566,3 +566,9 @@ input,textarea,select{font-size:max(16px,1em)}
 .wubig b{font-size:2.6rem;font-weight:800;font-variant-numeric:tabular-nums}
 .wubig .x{font-size:1.4rem;color:var(--muted);padding-top:14px}
 .seg i.wu{flex:0 0 10px;opacity:.6}
+
+/* gym switcher */
+.gymsw{display:flex;flex-direction:column;gap:8px;margin:0 0 14px}
+.gymsw .gyms{gap:6px}
+.gymsw .gymchip{padding:8px 13px;font-size:.9rem}
+.gymsw small{font-size:.78rem}

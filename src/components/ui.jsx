@@ -1,6 +1,17 @@
 // Small shared building blocks. Every visual primitive in the app comes from here.
 import React from "react";
 
+export const GymSwitcher = ({ data, note }) => {
+  const { gyms } = data; if (!gyms || gyms.list.length < 2) return null;
+  return (
+    <div className="gymsw">
+      <span className="eyebrow">Training at</span>
+      <div className="gyms">{gyms.list.map(x => <button key={x.id} className="gymchip" aria-pressed={x.id === gyms.active} onClick={() => x.id !== gyms.active && data.api.switchGym(x.id)}>{x.name}</button>)}</div>
+      {note && <small className="muted">{note}</small>}
+    </div>
+  );
+};
+
 export const IMG = p => `${import.meta.env.BASE_URL}img/${p}`;
 
 export const Icon = ({ name, className = "" }) => {

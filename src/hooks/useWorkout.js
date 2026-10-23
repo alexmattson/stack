@@ -58,5 +58,5 @@ export function useWorkout(data, date, dayIdx){
   const alts = key => alternatives(key, data.gear, day.ex.map(e => e[0]));
   const save = async (key, i, w, r, e) => { const pr = detectPR(data.prs, key, w, r); await api.saveSet(id, date, dayIdx, key, i, w, r, e); return pr; };
   const finish = (pending, note) => api.finish(id, date, dayIdx, pending, note);
-  return { id, session, day, total, doneCount, savedSet, nextOpen, ptr, setPtr, flatIndex, suggestions, restFor, save, finish, isBW: key => BODYWEIGHT_EX.has(key), isDeload, cycle:cyc, sequence, seqIndex, prevInSeq, nextInSeq, isLastInSeq, swap, alts, markWu, isOpen, workingIndex };
+  return { id, date, session, day, total, doneCount, savedSet, nextOpen, ptr, setPtr, flatIndex, suggestions, restFor, save, finish, isBW: key => BODYWEIGHT_EX.has(key), isDeload, cycle:cyc, sequence, seqIndex, prevInSeq, nextInSeq, isLastInSeq, swap, alts, markWu, isOpen, workingIndex };
 }

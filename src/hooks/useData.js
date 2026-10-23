@@ -56,7 +56,7 @@ export function useData(uid){
       const live = program[dayIdx];
       const doc = base
         ? JSON.parse(JSON.stringify({date:base.date, day:base.day, sets:base.sets, note:base.note || "", plan:planToStore(base.plan || live.ex), planName:base.planName || live.name, planFocus:base.planFocus || live.focus}))
-        : (() => { const dl = cycleInfo(sessions, prog.cycleStart, date).deload; const ex = dl ? live.ex.map(e => [e[0], e[1], deloadSets(e[2]), e[3], e[4], e[5], e[6]]) : live.ex; return {date, day:live.key, sets:{}, note:"", plan:planToStore(ex), planName:live.name, planFocus:live.focus, deload:dl}; })();
+        : (() => { const dl = cycleInfo(sessions, prog.cycleStart, date).deload; const ex = dl ? live.ex.map(e => [e[0], e[1], deloadSets(e[2]), e[3], e[4], e[5], e[6]]) : live.ex; return {date, day:live.key, sets:{}, note:"", plan:planToStore(ex), planName:live.name, planFocus:live.focus, deload:dl, gym:(gyms.list.find(x => x.id === gyms.active) || {}).name || null}; })();
       mutate(doc);
       doc.savedAt = new Date().toISOString();
       await db.set("sessions/" + id, doc);
@@ -64,7 +64,7 @@ export function useData(uid){
     };
     chain.current = chain.current.catch(() => {}).then(run);
     return chain.current;
-  }, [db, sessions, program]);
+  }, [db, sessions, program, gyms]);
 
   const api = {
     saveSet: (id, date, dayIdx, key, i, w, r, e) => writeSession(id, date, dayIdx, d => { d.sets[key] = d.sets[key] || []; while (d.sets[key].length <= i) d.sets[key].push({w:0, r:0}); d.sets[key][i] = e ? {w, r, e} : {w, r}; }),
@@ -73,7 +73,12 @@ export function useData(uid){
     swapExercise: (id, date, dayIdx, oldKey, row) => writeSession(id, date, dayIdx, d => { const pl = d.plan.map(e => e.key === oldKey ? {key:row[0], name:row[1], sets:e.sets, reps:row[3], w:row[4], q:row[5], g:row[6], pair:e.pair || null} : e); d.plan = pl; delete d.sets[oldKey]; }),
     // Gym profiles: the active gym's gear is what settings/equipment holds; the list keeps each gym's gear.
     saveGyms: async (list, active) => { setGyms({list, active}); await db.set("settings/gyms", {list, active}); },
-    switchGym: async id => { const g = gyms.list.find(x => x.id === id); if (!g || !g.gear) return; setGyms({...gyms, active:id}); setGear(normalizeGear(g.gear)); await Promise.all([db.set("settings/gyms", {...gyms, active:id}), db.set("settings/equipment", normalizeGear(g.gear))]); },
+    switchGym: async id => { const g = gyms.list.find(x => x.id === id); if (!g || !g.gear) return; const ng = normalizeGear(g.gear); setGyms({...gyms, active:id}); setGear(ng);
+      const writes = [db.set("settings/gyms", {...gyms, active:id}), db.set("settings/equipment", ng)];
+      // Sessions opened today with nothing logged yet get re-planned for the new gym.
+      const fresh = buildProgram({gear:ng, prog, trainingDays, block: cycle.cycle});
+      sessions.filter(s => s.date === today() && !Object.values(s.sets || {}).some(arr => arr.some(x => x.r))).forEach(s => { const live = fresh.find(d => d.key === s.day); if (!live) return; const ex = s.deload ? live.ex.map(e => [e[0], e[1], deloadSets(e[2]), e[3], e[4], e[5], e[6]]) : live.ex; const doc = {...s, plan:planToStore(ex), planName:live.name, planFocus:live.focus, gym:g.name, savedAt:new Date().toISOString()}; delete doc.id; writes.push(db.set("sessions/" + s.id, doc)); setSessions(prev => prev.map(x => x.id === s.id ? {id:s.id, ...doc} : x)); });
+      await Promise.all(writes); },
     finish: (id, date, dayIdx, pending, note) => writeSession(id, date, dayIdx, d => { pending.forEach(({key, i, w, r}) => { d.sets[key] = d.sets[key] || []; while (d.sets[key].length <= i) d.sets[key].push({w:0, r:0}); d.sets[key][i] = {w, r}; }); d.note = note; }),
     deleteSession: id => db.del("sessions/" + id).then(() => setSessions(p => p.filter(s => s.id !== id))),
     addBodylog: (date, weight, arm) => db.set("bodylog/" + date, {date, weight:weight || null, arm:arm || null}),

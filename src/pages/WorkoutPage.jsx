@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { PageHeader, BackButton, IconButton, Card, Pill, Icon, IconBubble, BigInput, Status, useStatus, useBeep, IMG, ConfirmSheet } from "../components/ui.jsx";
+import { PageHeader, BackButton, IconButton, Card, Pill, Icon, IconBubble, BigInput, Status, useStatus, useBeep, IMG, ConfirmSheet, GymSwitcher } from "../components/ui.jsx";
 import { useRestTimer } from "../hooks/useRestTimer.js";
 import { fmtDate } from "../lib/dates.js";
 import { exImg, TIMED } from "../lib/program.js";
@@ -128,6 +128,7 @@ export function WorkoutPage({ data, wo, date, onBack, onFocus }){
       <PageHeader left={<BackButton onClick={onBack}/>} title={`Day ${data.program.findIndex(d => d.key === wo.day.key) + 1} ${wo.day.name}`} sub={`${wo.day.focus} · ${fmtDate(date)}`} />
       <ConfirmSheet open={confirmClear} danger title="Clear this workout?" body={`Every set and note logged for ${wo.day.name} on ${fmtDate(date)} will be deleted. The day goes back to your current plan, so it will pick up any changes you make to goals or equipment.`} confirmLabel="Clear workout" busy={clearing} onConfirm={clearWorkout} onCancel={() => setConfirmClear(false)}/>
       {wo.isDeload && <div className="warn" style={{background:"var(--aqua2)"}}><b>Deload week.</b> Half the sets, same weights, bottom of each rep range. Next week starts a new block.</div>}
+      {wo.doneCount === 0 && wo.date === data.today && <GymSwitcher data={data} note="Switching rebuilds today's lifts for that gym's equipment."/>}
       <StartCard wo={wo} timer={timer} nextText={nextText} onSkipRest={() => timer.stop()} onStart={() => { const p = wo.nextOpen(); if (p) wo.setPtr(p); onFocus(); }}/>
       <textarea className="note" value={note} onChange={e => setNote(e.target.value)} placeholder="Session notes: energy, sleep, what felt heavy"/>
       <div>{wo.day.ex.map((ex, ei) => <ExerciseCard key={ex[0] + ei} ex={ex} ei={ei} wo={wo} draft={draft} setDraft={setDraft} status={exStatus} note={data.notes[ex[0]]} gear={data.gear} onSave={(key, i, wv, rv) => persist(key, i, wv, rv, true)} onFocus={ei => { let si = 0; const ex = wo.day.ex[ei]; for (let k = 0; k < ex[2]; k++) if (!wo.savedSet(ex[0], k)) { si = k; break; } wo.setPtr({ei, si}); onFocus(); }}/>)}</div>
