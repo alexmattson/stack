@@ -51,7 +51,7 @@ const RecentList = ({ sessions, program }) => {
   const rec = sessions.slice().sort((a, b) => b.date.localeCompare(a.date)).slice(0, 3);
   if (!rec.length) return <Card className="rowcard"><img src={IMG("empty.png")} alt="" style={{width:64, height:"auto"}}/><div className="grow muted">No sessions yet. Tap Start and your first workout will show up here.</div></Card>;
   return rec.map(s => { const n = sessionSetCount(s), tot = sessionTotal(s, program) || n, p = Math.min(100, Math.round(n / tot * 100)); const di = program.findIndex(d => d.key === s.day);
-    return <Card key={s.id} className="rowcard" style={{marginBottom:8}}><IconBubble name={/Pull/.test(s.planName || "") ? "pull" : "push"}/><div className="grow"><b>{s.planName ? `${s.planName}` : `Day ${di + 1}`}</b><small>{fmtDate(s.date)} · {n} sets</small></div><Ring pct={p} label={`${p}%`}/></Card>; });
+    return <Card key={s.id} className="rowcard" style={{marginBottom:8}}><IconBubble name={/Pull/.test(s.planName || "") ? "pull" : "push"}/><div className="grow"><b>{s.planName || (program[di] || {}).name || "Workout"}</b><small>{fmtDate(s.date)} · {n} sets</small></div><Ring pct={p} label={`${p}%`}/></Card>; });
 };
 
 export function HomePage({ data, onOpenWorkout }){
@@ -67,12 +67,12 @@ export function HomePage({ data, onOpenWorkout }){
   const when = sel === t ? "Today" : fmtDate(sel);
   const restDay = !isTrain && !cur, doneDay = cur && done >= total;
   let hero;
-  if (cur && done > 0 && done < total) hero = {state:"", eyebrow:`${when} · in progress`, title:`Day ${ni + 1} ${dayP.name}`, sub:`${done} of ${total} sets done · ${dayP.focus}`, cta:"Continue"};
-  else if (doneDay) hero = {state:"done", eyebrow:`${when} · complete`, title:`Day ${ni + 1} ${dayP.name} done`, sub:`All ${total} sets logged. Nice work. Eat, sleep, grow.`, cta:"Review"};
+  if (cur && done > 0 && done < total) hero = {state:"", eyebrow:`${when} · in progress`, title:dayP.name, sub:`${done} of ${total} sets done · ${dayP.focus}`, cta:"Continue"};
+  else if (doneDay) hero = {state:"done", eyebrow:`${when} · complete`, title:`${dayP.name} done`, sub:`All ${total} sets logged. Nice work. Eat, sleep, grow.`, cta:"Review"};
   else if (restDay) { const up = Object.keys(plan).filter(k => plan[k].kind === "plan" && k > sel).sort()[0]; const tips = ["Eat, sleep, and let the muscle show up.", "Protein today still counts. Aim for 130 g+.", "A 20-minute walk helps soreness more than sitting.", "Stretch the chest and lats; they tighten fastest."];
-    hero = {state:"rest", eyebrow: sel === t ? "Rest day" : `${when} · rest day`, title: sel < t ? "Rested" : "Recovery", sub:(sel === t ? tips[new Date().getDate() % tips.length] + " " : "") + (up ? `Next: Day ${plan[up].idx + 1} ${program[plan[up].idx].name} on ${fmtDate(up)}.` : ""), cta: sel === t ? "Train anyway" : "Log a workout"}; }
-  else if (sel < t) hero = {state:"", eyebrow:`${when} · missed`, title:`Day ${ni + 1} ${dayP.name}`, sub:`${dayP.ex.length} lifts · ${total} sets · ${dayP.focus}`, cta:"Log it anyway"};
-  else hero = {state:"", eyebrow:`${when} · ${data.cycle.deload ? "deload week" : `week ${data.cycle.week} of ${data.cycle.buildWeeks}`}`, title:`Day ${ni + 1} ${dayP.name}`, sub:`${dayP.ex.length} lifts · ${total} sets · ~${Math.round(total * 2)} min · ${dayP.focus}`, cta: sel === t ? "Start workout" : "Open workout"};
+    hero = {state:"rest", eyebrow: sel === t ? "Rest day" : `${when} · rest day`, title: sel < t ? "Rested" : "Recovery", sub:(sel === t ? tips[new Date().getDate() % tips.length] + " " : "") + (up ? `Next: ${program[plan[up].idx].name} on ${fmtDate(up)}.` : ""), cta: sel === t ? "Train anyway" : "Log a workout"}; }
+  else if (sel < t) hero = {state:"", eyebrow:`${when} · missed`, title:dayP.name, sub:`${dayP.ex.length} lifts · ${total} sets · ${dayP.focus}`, cta:"Log it anyway"};
+  else hero = {state:"", eyebrow:`${when} · ${data.cycle.deload ? "deload week" : `week ${data.cycle.week} of ${data.cycle.buildWeeks}`}`, title:dayP.name, sub:`${dayP.ex.length} lifts · ${total} sets · ~${Math.round(total * 2)} min · ${dayP.focus}`, cta: sel === t ? "Start workout" : "Open workout"};
   const ws = weekStart(); const wk = sessions.filter(s => s.date >= ws).length;
   const bw = bodylog.filter(b => b.weight).sort((a, b) => a.date.localeCompare(b.date));
   const st = strengthSummary(sessions, Object.fromEntries(program.flatMap(d => d.ex.map(e => [e[0], e[1]]))));

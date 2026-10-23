@@ -125,7 +125,7 @@ export function WorkoutPage({ data, wo, date, onBack, onFocus }){
   };
   return (
     <section id="log">
-      <PageHeader left={<BackButton onClick={onBack}/>} title={`Day ${data.program.findIndex(d => d.key === wo.day.key) + 1} ${wo.day.name}`} sub={`${wo.day.focus} · ${fmtDate(date)}`} />
+      <PageHeader left={<BackButton onClick={onBack}/>} title={wo.day.name} sub={`${wo.day.focus} · ${fmtDate(date)}`} />
       <ConfirmSheet open={confirmClear} danger title="Clear this workout?" body={`Every set and note logged for ${wo.day.name} on ${fmtDate(date)} will be deleted. The day goes back to your current plan, so it will pick up any changes you make to goals or equipment.`} confirmLabel="Clear workout" busy={clearing} onConfirm={clearWorkout} onCancel={() => setConfirmClear(false)}/>
       {wo.isDeload && <div className="warn" style={{background:"var(--aqua2)"}}><b>Deload week.</b> Half the sets, same weights, bottom of each rep range. Next week starts a new block.</div>}
       {wo.doneCount === 0 && wo.date === data.today && <GymSwitcher data={data} note="Switching rebuilds today's lifts for that gym's equipment."/>}

@@ -38,7 +38,7 @@ const History = ({ sessions, program, names, onDelete }) => {
   const list = sessions.slice().sort((a, b) => b.date.localeCompare(a.date));
   if (!list.length) return <div className="empty">No sessions yet. Your first logged workout shows up here.</div>;
   return list.map(s => { const di = program.findIndex(d => d.key === s.day); return (
-    <details key={s.id}><summary><span>{fmtDate(s.date)} · {s.planName || `Day ${di + 1}`}</span><span>{Object.keys(s.sets).length} lifts</span></summary>
+    <details key={s.id}><summary><span>{fmtDate(s.date)} · {s.planName || (program[di] || {}).name || "Workout"}</span><span>{Object.keys(s.sets).length} lifts</span></summary>
       {Object.keys(s.sets).map(k => <div key={k} className="d"><b>{names[k] || k}</b> · {s.sets[k].filter(x => x.r).map(x => BODYWEIGHT_EX.has(k) ? x.r : `${x.w}×${x.r}`).join(", ")}</div>)}
       {s.note && <div className="d">{s.note}</div>}
       <button className="del" onClick={() => confirm === s.id ? onDelete(s.id) : setConfirm(s.id)}>{confirm === s.id ? "Tap again to confirm" : "Delete this session"}</button>

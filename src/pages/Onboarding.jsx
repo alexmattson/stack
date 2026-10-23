@@ -69,7 +69,7 @@ export function Onboarding({ data, onDone, onCancel, replay }){
         {step === "done" && <div className="ob-body">
           <div className="eyebrow">Step 6 of 6</div><h1 className="ob-h">Your plan is ready.</h1>
           <p className="muted">{days.length} days a week · {p.focus.map(f => f[0].toUpperCase() + f.slice(1)).join(" + ")} · {GOALS.find(x => x[0] === p.goal)[1].toLowerCase()}</p>
-          <div className="ob-plan">{preview.map((d, k) => <div key={d.key} className="ob-day"><span className="n">Day {k + 1}</span><b>{d.name}</b><small>{d.ex.length} lifts · {d.ex.reduce((a, e) => a + e[2], 0)} sets</small></div>)}</div>
+          <div className="ob-plan">{preview.map((d, k) => <div key={d.key} className="ob-day"><b>{d.name}</b><small>{d.ex.length} lifts · {d.ex.reduce((a, e) => a + e[2], 0)} sets</small></div>)}</div>
           <p className="muted" style={{fontSize:".85rem"}}>Every set you log moves the next target. Hit the top of a rep range on every set and the weight goes up; miss it and you'll be told what to do instead.</p>
         </div>}
 
