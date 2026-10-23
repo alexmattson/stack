@@ -11,7 +11,12 @@ export function historyFor(sessions, exKey){
 }
 
 // dbs: sorted list of available dumbbells
-export function suggest(ex, sessions, gear){
+// Effort per set: 1 = easy (3+ reps left), 2 = hard (1–2 left), 3 = max (nothing left). Missing = hard.
+export const EFFORT = {1:"Easy", 2:"Hard", 3:"Max"};
+const effortOf = sets => { const es = sets.map(x => x.e || 2); return es.reduce((a, b) => a + b, 0) / es.length; };
+
+// ctx: {readiness: "low"|"ok"|"high"|"unknown", deload: bool}
+export function suggest(ex, sessions, gear, ctx = {}){
   const [key, , n, rangeStr, startW] = ex;
   const range = parseRange(rangeStr);
   const hist = historyFor(sessions, key);
@@ -37,10 +42,13 @@ export function suggest(ex, sessions, gear){
     return {w:0, reps, why:`Last time ${last.join(", ")}. Add one rep to the first set and hold the rest.`};
   }
 
-  if (!hist.length) return {w:startW, reps:fill(range.lo), why:`Starting point: ${startW} lb for ${range.lo} reps. If set 1 feels like 4+ reps in reserve, go up a dumbbell now.`};
+  if (!hist.length) return {w:startW, reps:fill(range.lo), why:`Starting point: ${startW} lb for ${range.lo} reps. Rate the set Easy if you had 4+ left and the next target jumps.`};
   const last = hist[0];
   const lastW = Math.max(...last.sets.map(s => s.w || 0));
   const lastReps = last.sets.map(s => s.r);
+  const effort = effortOf(last.sets);
+  if (ctx.deload) return {w:lastW, reps:fill(range.lo), why:`Deload week: ${lastW} lb for ${range.lo}, half the sets. Move well, leave plenty in the tank.`};
+  if (ctx.readiness === "low") return {w:lastW, reps:lastReps.map(r => Math.max(range.lo, r - 1)), why:`Low readiness today. Match ${lastW} lb, one rep under last time. The push comes next session.`};
   const totalReps = r => r.reduce((a, b) => a + b, 0);
   const allHitTop = lastReps.length >= n && lastReps.every(r => r >= range.hi);
   const fatigue = lastReps.length > 1 && (lastReps[0] - lastReps[lastReps.length - 1]) >= 4;
@@ -50,15 +58,18 @@ export function suggest(ex, sessions, gear){
     totalReps(prevSame[1].sets.map(s => s.r)) <= totalReps(prevSame[2].sets.map(s => s.r));
   if (allHitTop) {
     const up = nextDB(lastW);
+    if (up && effort <= 1.34) { const up2 = nextDB(up) || up; return {w:up2, reps:fill(range.lo), why:`Top of the range and you called it easy. Two steps up to ${up2} lb; reps reset to ${range.lo}.`}; }
     if (up) return {w:up, reps:fill(range.lo), why:`You hit ${range.hi}+ on every set at ${lastW} lb. Weight goes up to ${up}; reps reset to ${range.lo}.`};
     return {w:lastW, reps:lastReps.map(r => r + 1), why: equip === "db" || equip === "kb" ? `Maxed out your ${maxDB}s. Add a rep per set, lower for 3 seconds, pause at the bottom. Time to buy heavier.` : `At your max load (${maxDB} lb). Add a rep per set and slow the lowering; update Setup if you get more plates.`};
   }
   if (stalled) { const w = prevDB(lastW); return {w, reps:fill(range.hi), why:`Three sessions at ${lastW} lb with no rep gain. Drop to ${w} lb, own the top of the range, then climb back.`}; }
-  const reps = lastReps.map(r => Math.min(range.hi, r + 1));
+  if (effort >= 2.67 && !fatigue) { const reps = lastReps.slice(); while (reps.length < n) reps.push(range.lo); return {w:lastW, reps, why:`Every set was max effort last time. Repeat ${lastW} lb for ${lastReps.join(", ")} and own it before adding.`}; }
+  const bump = effort <= 1.34 ? 2 : 1;
+  const reps = lastReps.map(r => Math.min(range.hi, r + bump));
   while (reps.length < n) reps.push(range.lo);
   const why = fatigue
     ? `Reps fell from ${lastReps[0]} to ${lastReps[lastReps.length - 1]} last time. Same weight, +1 rep, and rest a full 2–3 minutes between sets.`
-    : `Last time ${lastReps.join(", ")} at ${lastW} lb. Same weight, add one rep per set. Hit ${range.hi} on all sets and the weight goes up.`;
+    : `Last time ${lastReps.join(", ")} at ${lastW} lb. Same weight, add ${bump === 2 ? "two reps" : "one rep"} per set. Hit ${range.hi} on all sets and the weight goes up.`;
   return {w:lastW, reps, why};
 }
 

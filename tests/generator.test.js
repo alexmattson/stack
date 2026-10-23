@@ -24,3 +24,39 @@ test("progression: top of range steps to next owned dumbbell; barbell steps 5 lb
   const s3 = suggest(["kb_swing","KB",4,"8–12",35,"",""], [{date:"2026-10-20", sets:{kb_swing:[{w:35,r:12},{w:35,r:12},{w:35,r:12},{w:35,r:12}]}}], {...g50, kettlebells:[20,35,53]});
   assert.equal(s3.w, 53);
 });
+
+import { cycleInfo, deloadSets } from "../src/lib/cycle.js";
+import { weeklySets, recovery, readinessScore, readinessLevel, plannedSets } from "../src/lib/volume.js";
+import { prTable, detectPR } from "../src/lib/prs.js";
+
+test("cycle: 4 build weeks then a deload, then block 2", () => {
+  const s = [{date:"2026-10-01", sets:{}}];
+  assert.deepEqual([cycleInfo(s, null, "2026-10-01").week, cycleInfo(s, null, "2026-10-28").week, cycleInfo(s, null, "2026-10-29").deload, cycleInfo(s, null, "2026-11-05").cycle], [1, 4, true, 2]);
+  assert.equal(deloadSets(4), 2); assert.equal(deloadSets(3), 2);
+});
+test("effort changes progression: easy top-of-range jumps two steps, max effort holds", () => {
+  const easy = suggest(["flat_press","F",4,"8–12",35,"",""], [{date:"2026-10-20", sets:{flat_press:[{w:35,r:12,e:1},{w:35,r:12,e:1},{w:35,r:12,e:1},{w:35,r:12,e:1}]}}], g50);
+  assert.equal(easy.w, 45);
+  const max = suggest(["flat_press","F",4,"8–12",35,"",""], [{date:"2026-10-20", sets:{flat_press:[{w:35,r:10,e:3},{w:35,r:9,e:3},{w:35,r:9,e:3},{w:35,r:8,e:3}]}}], g50);
+  assert.deepEqual([max.w, max.reps], [35, [10,9,9,8]]);
+  const dl = suggest(["flat_press","F",4,"8–12",35,"",""], [{date:"2026-10-20", sets:{flat_press:[{w:35,r:10},{w:35,r:9}]}}], g50, {deload:true});
+  assert.deepEqual([dl.w, dl.reps[0]], [35, 8]);
+});
+test("volume: plan lands inside landmarks for the default upper+core setup", () => {
+  const p = buildProgram({gear:g50, prog:PROGRAM_DEFAULTS, trainingDays:[1,2,4,5]}); const v = plannedSets(p);
+  for (const m of ["chest","back","shoulders","arms"]) assert.ok(v[m] >= 8 && v[m] <= 20, `${m}=${v[m]}`);
+  assert.ok(v.core >= 6 && v.core <= 14);
+});
+test("PRs: heavier weight, more reps at weight, and e1rm", () => {
+  const t = prTable([{date:"2026-10-20", sets:{flat_press:[{w:35,r:10}]}}]);
+  assert.equal(detectPR(t, "flat_press", 40, 8).kind, "weight");
+  assert.equal(detectPR(t, "flat_press", 35, 11).kind, "reps");
+  assert.equal(detectPR(t, "flat_press", 35, 9), null);
+  assert.equal(detectPR(t, "chinup", 8).kind, "reps");
+});
+test("readiness and recovery", () => {
+  assert.equal(readinessLevel(readinessScore({sleep:3, soreness:3, energy:3})), "high");
+  assert.equal(readinessLevel(readinessScore({sleep:1, soreness:1, energy:2})), "low");
+  const r = recovery([{date:"2026-10-20", savedAt:new Date().toISOString(), sets:{flat_press:[{w:35,r:10},{w:35,r:10},{w:35,r:10},{w:35,r:10}]}}]);
+  assert.ok(r.chest < 100 && r.legs === 100);
+});

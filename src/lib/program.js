@@ -152,7 +152,7 @@ export function chooseSplit(days, focus){
 
 // ---------- builder ----------
 export function buildProgram(opts){
-  const {gear, prog, trainingDays} = opts;
+  const {gear, prog, trainingDays, block = 1} = opts;
   const days = Math.min(6, Math.max(1, trainingDays.length || 4));
   const focus = prog.focus && prog.focus.length ? prog.focus : ["upper","core"];
   const have = new Set(gear.equipment || []);
@@ -172,9 +172,11 @@ export function buildProgram(opts){
 
   const split = chooseSplit(days, focus);
   const usedCount = {};                                  // spread variety across the week
+  // each new block nudges the second-choice exercises up so the plan rotates without losing the main lifts
+  const rot = e => { if (block <= 1 || e.pri === 0) return 0; let h = block; for (const ch of e.key) h = (h * 31 + ch.charCodeAt(0)) % 97; return h % 2 ? -1.5 : 0; };
   const pick = (groups, usedToday) => {
     for (const g of groups) {
-      const cands = LIB.filter(e => e.group === g && ok(e) && !usedToday.has(e.key)).sort((a,b) => (a.pri + (usedCount[a.key]||0)*2) - (b.pri + (usedCount[b.key]||0)*2));
+      const cands = LIB.filter(e => e.group === g && ok(e) && !usedToday.has(e.key)).sort((a,b) => (a.pri + rot(a) + (usedCount[a.key]||0)*2) - (b.pri + rot(b) + (usedCount[b.key]||0)*2));
       if (cands.length) return cands[0];
     }
     return null;
@@ -189,6 +191,26 @@ export function buildProgram(opts){
     const meta = DAY_META[d.kind];
     return {key:"d"+(i+1), name:meta.name, focus:meta.focus + (coreEx.length ? " · Abs" : ""), ex:[...ex.map(e => toRow(e)), ...coreEx.map(e => toRow(e, 2))]};
   });
+  return rebalance(program, focus);
+}
+
+// Keep weekly hard sets per muscle inside the growth window: add a set to the lifts of an
+// under-served muscle, trim one from an over-served one. Compounds first, never below 2 or above 5.
+const MUSCLE = {chest:"chest", chest_upper:"chest", shoulders:"shoulders", side_delts:"shoulders", rear_delts:"shoulders", triceps:"arms", biceps:"arms", lats:"back", back:"back", traps:"back", quads:"legs", hams:"legs", glutes:"legs", calves:"legs", abs:"core", abs_lower:"core", obliques:"core"};
+const WINDOW = {chest:[10,20], back:[10,20], shoulders:[8,20], arms:[8,18], legs:[10,20], core:[6,14]};
+function rebalance(program, focus){
+  const want = new Set(); if (focus.includes("upper")) ["chest","back","shoulders","arms"].forEach(m => want.add(m)); if (focus.includes("lower")) want.add("legs"); if (focus.includes("core")) want.add("core");
+  const count = () => { const c = {}; program.forEach(d => d.ex.forEach(e => { const m = MUSCLE[LIB_BY_KEY[e[0]].group]; c[m] = (c[m] || 0) + e[2]; })); return c; };
+  for (let pass = 0; pass < 6; pass++) {
+    const c = count(); let changed = false;
+    for (const m of want) {
+      const [lo, hi] = WINDOW[m]; const rows = program.flatMap(d => d.ex).filter(e => MUSCLE[LIB_BY_KEY[e[0]].group] === m).sort((a, b) => (LIB_BY_KEY[a[0]].kind === "compound" ? 0 : 1) - (LIB_BY_KEY[b[0]].kind === "compound" ? 0 : 1));
+      if (!rows.length) continue;
+      if ((c[m] || 0) < lo) { const r = rows.find(e => e[2] < 5); if (r) { r[2]++; changed = true; } }
+      else if ((c[m] || 0) > hi) { const r = rows.slice().reverse().find(e => e[2] > 2); if (r) { r[2]--; changed = true; } }
+    }
+    if (!changed) break;
+  }
   return program;
 }
 

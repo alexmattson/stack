@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { PageHeader, BackButton, IconButton, Pill, BigInput, IMG, useStatus, useBeep } from "../components/ui.jsx";
+import { PageHeader, BackButton, IconButton, Pill, BigInput, IMG, useStatus, useBeep, Icon } from "../components/ui.jsx";
 import { useRestTimer } from "../hooks/useRestTimer.js";
 import { exImg, TIMED } from "../lib/program.js";
 
@@ -23,15 +23,17 @@ export function FocusMode({ data, wo, onBack, onHome }){
   const [nextPtr, setNextPtr] = useState(null); const [nextText, setNextText] = useState(""); const [nextMeta, setNextMeta] = useState({});
   const nextRef = useRef(null);
   const [busy, setBusy] = useState(false);
+  const [effort, setEffort] = useState(2); const [pr, setPr] = useState(null);
   const { prime, beep, tick } = useBeep();
   // at zero: play the go chime, then move to the next set on its own after a short beat
   const timer = useRestTimer(() => { beep(); setTimeout(() => { const n = nextRef.current; if (n) { nextRef.current = null; wo.setPtr(n); setPhase("set"); } }, 1200); }, tick);
   const ex = wo.day.ex[wo.ptr.ei]; const [key, name, n, reps, , q, g] = ex || []; const bw = ex && wo.isBW(key); const sg = ex && wo.suggestions[key]; const sv = ex && wo.savedSet(key, wo.ptr.si);
-  useEffect(() => { if (!ex) return; setW(bw ? "" : String(sv ? sv.w : sg.w)); setR(String(sv ? sv.r : (sg.reps[wo.ptr.si] ?? ""))); setStatus(""); }, [wo.ptr, wo.id]); // eslint-disable-line
+  useEffect(() => { if (!ex) return; setW(bw ? "" : String(sv ? sv.w : sg.w)); setR(String(sv ? sv.r : (sg.reps[wo.ptr.si] ?? ""))); setEffort(sv && sv.e ? sv.e : 2); setStatus(""); setPr(null); }, [wo.ptr, wo.id]); // eslint-disable-line
   const done = async () => {
     const wv = bw ? 0 : +w || 0, rv = +r || 0;
     if (!rv) return setStatus("Enter the reps you got."); if (!bw && !wv) return setStatus("Enter the weight.");
-    setBusy(true); try { await wo.save(key, wo.ptr.si, wv, rv); } catch (e) { setBusy(false); return setStatus(data.api.friendlyDbError(e)); } setBusy(false);
+    setBusy(true); let hit = null; try { hit = await wo.save(key, wo.ptr.si, wv, rv, effort); } catch (e) { setBusy(false); return setStatus(data.api.friendlyDbError(e)); } setBusy(false);
+    if (hit) { setPr(hit); try { if (navigator.vibrate) navigator.vibrate([60, 40, 60, 40, 120]); } catch (e) {} }
     const nxt = wo.nextOpen(wo.ptr);
     if (!nxt) { timer.stop(); setPhase("finish"); return; }
     const nex = wo.day.ex[nxt.ei]; setNextText(`Next: ${nex[1]} · set ${nxt.si + 1} of ${nex[2]}`); const nsg = wo.suggestions[nex[0]]; const nsv = wo.savedSet(nex[0], nxt.si); const nbw = wo.isBW(nex[0]);
@@ -43,7 +45,7 @@ export function FocusMode({ data, wo, onBack, onHome }){
   return (
     <section id="focus">
       <div className="wrap">
-        <PageHeader left={<BackButton onClick={onBack} label="Back to workout"/>} title={wo.day.name} sub={`Set ${wo.flatIndex(wo.ptr) + 1} of ${wo.total}${ex ? " · " + name : ""}`} right={<IconButton name="close" label="Home" onClick={onHome}/>}/>
+        <PageHeader left={<BackButton onClick={onBack} label="Back to workout"/>} title={wo.isDeload ? `${wo.day.name} · deload` : wo.day.name} sub={`Set ${wo.flatIndex(wo.ptr) + 1} of ${wo.total}${ex ? " · " + name : ""}`} right={<IconButton name="close" label="Home" onClick={onHome}/>}/>
         <Segments wo={wo}/>
         {phase === "set" && ex && (
           <div className="fcard">
@@ -58,10 +60,12 @@ export function FocusMode({ data, wo, onBack, onHome }){
               <BigInput id="f-w" label="Weight lb" value={bw ? "" : w} onChange={setW} step={5} disabled={bw} placeholder={bw ? "BW" : ""}/>
               <BigInput id="f-r" label={TIMED.has(key) ? "Seconds" : "Reps"} value={r} onChange={setR} step={1}/>
             </div>
+            <div className="effort"><span className="eyebrow">How hard was it?</span><div className="segc">{[[1,"Easy","3+ left"],[2,"Hard","1–2 left"],[3,"Max","nothing left"]].map(([v, l, s]) => <button key={v} aria-pressed={effort === v} onClick={() => setEffort(v)}><b>{l}</b><small>{s}</small></button>)}</div></div>
             <button className="done-btn" onClick={done} disabled={busy}>{sv ? "Update set" : "Finish set"}</button>
             <div className={`exstatus ${status.text ? "bad" : ""}`} style={{textAlign:"center", marginTop:8}}>{status.text}</div>
           </div>
         )}
+        {phase === "rest" && pr && <div className="prtoast"><Icon name="bolt" className="gicon"/><span>{pr.text}</span></div>}
         {phase === "rest" && <RestCard timer={timer} nextText={nextText} nextGuide={nextMeta.guide} nextImg={nextMeta.img} nextTarget={nextMeta.target} onNext={advance}/>}
         {phase === "finish" && (
           <div className="fcard" style={{textAlign:"center"}}>

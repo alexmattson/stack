@@ -105,10 +105,10 @@ export function WorkoutPage({ data, wo, date, onBack, onFocus }){
     if (!rv) return fromList ? setExStatus({key, text:`Enter the reps for set ${i + 1}.`}) : setStatus("Enter the reps you got.");
     if (!bw && !wv) return fromList ? setExStatus({key, text:`Enter the weight for set ${i + 1}.`}) : setStatus("Enter the weight.");
     setBusy(true);
-    try { await wo.save(key, i, wv, rv); } catch (e) { setBusy(false); const m = data.api.friendlyDbError(e); return fromList ? setExStatus({key, text:m}) : setStatus(m); }
+    let hit = null; try { hit = await wo.save(key, i, wv, rv, 2); } catch (e) { setBusy(false); const m = data.api.friendlyDbError(e); return fromList ? setExStatus({key, text:m}) : setStatus(m); }
     setBusy(false);
     setDraft(d => { const n = {...d}; delete n[`${key}_${i}_w`]; delete n[`${key}_${i}_r`]; return n; });
-    if (fromList) { setExStatus({key, text:`Set ${i + 1} saved: ${bw ? rv + " reps" : wv + " × " + rv}.`, ok:true}); setTimeout(() => setExStatus(s => s && s.key === key ? null : s), 3000); } else setStatus("", true);
+    if (fromList) { setExStatus({key, text:(hit ? hit.text + " · " : "") + `Set ${i + 1} saved: ${bw ? rv + " reps" : wv + " × " + rv}.`, ok:true}); setTimeout(() => setExStatus(s => s && s.key === key ? null : s), 3000); } else setStatus("", true);
     const from = fromList ? {ei: wo.day.ex.findIndex(e => e[0] === key), si:i} : wo.ptr;
     const nxt = wo.nextOpen(from);
     if (!nxt) { setFinish("All sets logged. Tap Finish session.", true); timer.stop(); return; }
@@ -124,6 +124,7 @@ export function WorkoutPage({ data, wo, date, onBack, onFocus }){
     <section id="log">
       <PageHeader left={<BackButton onClick={onBack}/>} title={`Day ${data.program.findIndex(d => d.key === wo.day.key) + 1} ${wo.day.name}`} sub={`${wo.day.focus} · ${fmtDate(date)}`} />
       <ConfirmSheet open={confirmClear} danger title="Clear this workout?" body={`Every set and note logged for ${wo.day.name} on ${fmtDate(date)} will be deleted. The day goes back to your current plan, so it will pick up any changes you make to goals or equipment.`} confirmLabel="Clear workout" busy={clearing} onConfirm={clearWorkout} onCancel={() => setConfirmClear(false)}/>
+      {wo.isDeload && <div className="warn" style={{background:"var(--aqua2)"}}><b>Deload week.</b> Half the sets, same weights, bottom of each rep range. Next week starts a new block.</div>}
       <StartCard wo={wo} timer={timer} nextText={nextText} onSkipRest={() => timer.stop()} onStart={() => { const p = wo.nextOpen(); if (p) wo.setPtr(p); onFocus(); }}/>
       <textarea className="note" value={note} onChange={e => setNote(e.target.value)} placeholder="Session notes: energy, sleep, what felt heavy"/>
       <div>{wo.day.ex.map((ex, ei) => <ExerciseCard key={ex[0] + ei} ex={ex} ei={ei} wo={wo} draft={draft} setDraft={setDraft} status={exStatus} onSave={(key, i, wv, rv) => persist(key, i, wv, rv, true)} onFocus={ei => { let si = 0; const ex = wo.day.ex[ei]; for (let k = 0; k < ex[2]; k++) if (!wo.savedSet(ex[0], k)) { si = k; break; } wo.setPtr({ei, si}); onFocus(); }}/>)}</div>

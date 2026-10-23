@@ -4,6 +4,7 @@ import { DOW, today, addDays, fmtDate, weekStart, greeting, weekNumber } from ".
 import { buildPlan, sessionFor, sessionSetCount, sessionTotal, sessionComplete, plannedDayFor } from "../lib/plan.js";
 import { strengthSummary } from "../lib/progression.js";
 import { planFromStore } from "../lib/program.js";
+import { MUSCLES, MUSCLE_LABEL } from "../lib/volume.js";
 
 
 const DateStrip = ({ selected, onSelect, plan, sessions, program }) => {
@@ -26,6 +27,24 @@ const HeroCard = ({ state, title, eyebrow, sub, cta, onStart }) => (
   </Card>
 );
 
+const CheckinCard = ({ data }) => {
+  const [c, setC] = useState({sleep:2, soreness:2, energy:2}); const [saving, setSaving] = useState(false);
+  if (data.todayCheckin) return null;
+  const rows = [["sleep","Sleep",["Rough","Okay","Great"]],["soreness","Soreness",["Wrecked","Some","Fresh"]],["energy","Energy",["Low","Okay","High"]]];
+  return (
+    <Card tone="aqua2" className="checkin">
+      <div className="rowcard" style={{marginBottom:8}}><IconBubble name="bolt"/><div className="grow"><b>How are you today?</b><small>Ten seconds. Today's targets adjust to it.</small></div></div>
+      {rows.map(([k, label, opts]) => <div key={k} className="ci-row"><span>{label}</span><div className="segc small">{opts.map((o, i) => <button key={o} aria-pressed={c[k] === i + 1} onClick={() => setC({...c, [k]:i + 1})}>{o}</button>)}</div></div>)}
+      <Pill style={{marginTop:10}} disabled={saving} onClick={async () => { setSaving(true); try { await data.api.saveCheckin(c); } catch (e) {} setSaving(false); }}>{saving ? "Saving…" : "Set my readiness"}</Pill>
+    </Card>
+  );
+};
+const RecoveryTile = ({ recov, readiness }) => (
+  <div className="tile" style={{gridColumn:"span 2"}}>
+    <div className="top"><IconBubble name="check"/>Recovery{readiness.score != null && <span className={`chip rd ${readiness.level}`}>Readiness {readiness.score}</span>}</div>
+    <div className="recov">{MUSCLES.map(m => <div key={m} className="rc"><small>{MUSCLE_LABEL[m]}</small><span className="bar"><i style={{width:`${recov[m]}%`}} className={recov[m] < 50 ? "low" : recov[m] < 80 ? "mid" : ""}/></span></div>)}</div>
+  </div>
+);
 const Tile = ({ icon, label, value, unit, tone = "" }) => <div className={`tile ${tone}`}><div className="top"><IconBubble name={icon}/>{label}</div><b>{value}{unit && <small>{unit}</small>}</b></div>;
 
 const RecentList = ({ sessions, program }) => {
@@ -53,7 +72,7 @@ export function HomePage({ data, onOpenWorkout }){
   else if (restDay) { const up = Object.keys(plan).filter(k => plan[k].kind === "plan" && k > sel).sort()[0]; const tips = ["Eat, sleep, and let the muscle show up.", "Protein today still counts. Aim for 130 g+.", "A 20-minute walk helps soreness more than sitting.", "Stretch the chest and lats; they tighten fastest."];
     hero = {state:"rest", eyebrow: sel === t ? "Rest day" : `${when} · rest day`, title: sel < t ? "Rested" : "Recovery", sub:(sel === t ? tips[new Date().getDate() % tips.length] + " " : "") + (up ? `Next: Day ${plan[up].idx + 1} ${program[plan[up].idx].name} on ${fmtDate(up)}.` : ""), cta: sel === t ? "Train anyway" : "Log a workout"}; }
   else if (sel < t) hero = {state:"", eyebrow:`${when} · missed`, title:`Day ${ni + 1} ${dayP.name}`, sub:`${dayP.ex.length} lifts · ${total} sets · ${dayP.focus}`, cta:"Log it anyway"};
-  else hero = {state:"", eyebrow:when, title:`Day ${ni + 1} ${dayP.name}`, sub:`${dayP.ex.length} lifts · ${total} sets · ~${Math.round(total * 2)} min · ${dayP.focus}`, cta: sel === t ? "Start workout" : "Open workout"};
+  else hero = {state:"", eyebrow:`${when} · ${data.cycle.deload ? "deload week" : `week ${data.cycle.week} of ${data.cycle.buildWeeks}`}`, title:`Day ${ni + 1} ${dayP.name}`, sub:`${dayP.ex.length} lifts · ${total} sets · ~${Math.round(total * 2)} min · ${dayP.focus}`, cta: sel === t ? "Start workout" : "Open workout"};
   const ws = weekStart(); const wk = sessions.filter(s => s.date >= ws).length;
   const bw = bodylog.filter(b => b.weight).sort((a, b) => a.date.localeCompare(b.date));
   const st = strengthSummary(sessions, Object.fromEntries(program.flatMap(d => d.ex.map(e => [e[0], e[1]]))));
@@ -65,7 +84,9 @@ export function HomePage({ data, onOpenWorkout }){
       <div className="eyebrow">{new Date().toLocaleDateString(undefined, {weekday:"long", month:"long", day:"numeric"})}</div>
       <DateStrip selected={sel} onSelect={setSel} plan={plan} sessions={sessions} program={program}/>
       <HeroCard {...hero} onStart={() => onOpenWorkout(sel, ni)}/>
+      {isTrain && sel === t && !doneDay && <CheckinCard data={data}/>}
       <div className="tiles">
+        <RecoveryTile recov={data.recov} readiness={data.readiness}/>
         <Tile tone="aqua" icon="scale" label="Bodyweight" value={bw.length ? bw[bw.length - 1].weight : data.prog.bodyweight} unit="lb"/>
         <Tile icon="check" label="This week" value={wk} unit={`of ${trainingDays.length}`}/>
         <Tile icon="flame" label="Sessions" value={sessions.length} unit="total"/>

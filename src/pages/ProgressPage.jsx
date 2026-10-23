@@ -4,6 +4,7 @@ import { DOW, today, fmtDate, iso, weekStart, weekNumber } from "../lib/dates.js
 import { strengthSummary } from "../lib/progression.js";
 import { BODYWEIGHT_EX, planFromStore } from "../lib/program.js";
 import { sessionSetCount } from "../lib/plan.js";
+import { weeklySets, plannedSets, LANDMARKS, MUSCLES, MUSCLE_LABEL } from "../lib/volume.js";
 
 
 const WeeklyBars = ({ sessions }) => {
@@ -44,6 +45,23 @@ const History = ({ sessions, program, names, onDelete }) => {
     </details>); });
 };
 
+const VolumeCard = ({ sessions, program, prog }) => {
+  const done = weeklySets(sessions); const plan = plannedSets(program);
+  const want = new Set(); if (prog.focus.includes("upper")) ["chest","back","shoulders","arms"].forEach(m => want.add(m)); if (prog.focus.includes("lower")) want.add("legs"); if (prog.focus.includes("core")) want.add("core");
+  return (
+    <Card>
+      <div className="rowcard" style={{marginBottom:10}}><div className="grow"><b>Sets per muscle this week</b><small>Green band is the growth window; the plan lands inside it.</small></div></div>
+      <div className="vol">{MUSCLES.filter(m => want.has(m)).map(m => { const [lo, hi] = LANDMARKS[m]; const max = Math.max(hi + 6, plan[m], done[m]); const pct = v => Math.min(100, v / max * 100);
+        return <div key={m} className="vrow"><small>{MUSCLE_LABEL[m]}</small><div className="vbar"><i className="plan" style={{width:`${pct(plan[m])}%`}}/><i className="done" style={{width:`${pct(done[m])}%`}}/><i className="band" style={{left:`${pct(lo)}%`, width:`${pct(hi) - pct(lo)}%`}}/></div><b>{done[m]}<small>/{plan[m]}</small></b></div>; })}</div>
+    </Card>
+  );
+};
+const PRList = ({ prs, names }) => {
+  const keys = Object.keys(prs).filter(k => prs[k].weight || prs[k].reps).sort((a, b) => (prs[b].e1rm || prs[b].reps) - (prs[a].e1rm || prs[a].reps));
+  if (!keys.length) return <Card><div className="empty">Your records show up here after the first few sessions.</div></Card>;
+  return <Card><div className="lifts">{keys.map(k => { const p = prs[k]; return <div key={k} className="lift"><IconBubble name="bolt"/><div className="nm"><b>{names[k] || k}</b><span className="dots"/></div><span className="val">{p.weight ? <>{p.weight}×{p.repsAtWeight}<small>est. {Math.round(p.e1rm)}</small></> : <>{p.reps}<small>reps</small></>}</span></div>; })}</div></Card>;
+};
+
 export function ProgressPage({ data, onBack }){
   const { sessions, bodylog, program, trainingDays, prog, api } = data;
   const [form, setForm] = useState({date:today(), w:"", arm:""}); const [st, setSt] = useStatus();
@@ -64,6 +82,10 @@ export function ProgressPage({ data, onBack }){
       </div>
       <h2>Weekly target</h2>
       <Card><div className="rowcard"><div className="grow"><b>{wk} of {target} workouts</b><small>Mon–Sun · training days from your schedule</small></div><div className="num">{pct}<small>%</small></div></div><div className="hbar"><i style={{width:`${pct}%`}}/></div></Card>
+      <h2>Volume</h2>
+      <VolumeCard sessions={sessions} program={program} prog={prog}/>
+      <h2>Personal records</h2>
+      <PRList prs={data.prs} names={names}/>
       <h2>Lifts · first vs latest</h2>
       <Card><LiftList st={summary}/></Card>
       <h2>Weigh in</h2>
