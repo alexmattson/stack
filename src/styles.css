@@ -572,3 +572,5 @@ input,textarea,select{font-size:max(16px,1em)}
 .gymsw .gyms{gap:6px}
 .gymsw .gymchip{padding:8px 13px;font-size:.9rem}
 .gymsw small{font-size:.78rem}
+.gymadd{display:flex;align-items:center;gap:10px;margin:12px 0}
+.gymadd input{flex:1;min-width:0}

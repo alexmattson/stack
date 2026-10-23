@@ -132,7 +132,7 @@ export function EquipmentPage({ data, onBack }){
       <h2>Gym</h2>
       <Card style={{display:"grid", gap:10}}>
         <div className="gyms">{gyms.list.map(x => <button key={x.id} className="gymchip" aria-pressed={x.id === gyms.active} onClick={() => x.id !== gyms.active && data.api.switchGym(x.id)}>{x.name}</button>)}<button className="gymchip add" onClick={() => setNaming(true)}>+ Add</button></div>
-        {naming && <div className="rowi" style={{margin:0, gap:8}}><input value={newName} placeholder="Work gym, Travel…" onChange={e => setNewName(e.target.value)} style={{flex:1}}/><Pill className="mini" onClick={addGym}>Create</Pill><Pill ghost className="mini" onClick={() => setNaming(false)}>Cancel</Pill></div>}
+        {naming && <div className="gymadd"><input value={newName} placeholder="Work gym, Travel…" onChange={e => setNewName(e.target.value)} style={{flex:1}}/><Pill className="mini" onClick={addGym}>Create</Pill><Pill ghost className="mini" onClick={() => setNaming(false)}>Cancel</Pill></div>}
         <small className="muted">Each gym keeps its own equipment. Switch gyms and the plan rebuilds for what's there.{gyms.list.length > 1 && <> · <button className="linkbtn" onClick={() => removeGym(gyms.active)}>Remove this gym</button></>}</small>
       </Card>
 
