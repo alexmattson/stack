@@ -13,7 +13,7 @@ export function AccountPage({ data, auth, onBack, onManage, go, onReplayOnboardi
     <section id="settings">
       <PageHeader left={<BackButton onClick={onBack}/>} title="Account" sub="Sync, data and app details"/>
       <Card tone="aqua" className="acctcard" style={{display:"grid", gap:12}}>
-        <div className="acct-art"><img className="b" src={IMG("login-run.png")} alt=""/><img className="a" src={IMG("login-leap.png")} alt=""/></div>
+        <div className="acct-art"><img className="a" src={IMG("acct-man.png")} alt=""/><img className="b" src={IMG("acct-woman.png")} alt=""/></div>
         <RowCard icon={<IconBubble name="user"/>} title={g ? (u.displayName || u.email || "Signed in") : "Device only"} sub={g ? `${u.email || "Google account"} · progress follows you everywhere.` : "Saved on this device. Sign in to keep it everywhere you train."}/>
         {!g && <Pill big onClick={auth.google}>Continue with Google</Pill>}
         {g && <Pill big ghost onClick={auth.logout}>Sign out</Pill>}
