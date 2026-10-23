@@ -550,13 +550,13 @@ input,textarea,select{font-size:max(16px,1em)}
 .gymchip.add{background:transparent;box-shadow:inset 0 0 0 1.5px var(--line);color:var(--muted)}
 
 /* account card art */
-.acctcard{position:relative;overflow:hidden;padding-top:150px}
-.acct-art{position:absolute;left:0;right:0;top:0;height:150px;pointer-events:none}
-.acct-art::before{content:"";position:absolute;left:50%;top:-90px;width:260px;height:260px;border-radius:50%;background:rgba(255,255,255,.35);transform:translateX(-50%)}
-.acct-art img{position:absolute;bottom:0;filter:drop-shadow(0 10px 14px rgba(21,48,58,.25))}
-.acct-art .a{left:calc(50% - 86px);height:140px}
-.acct-art .b{left:calc(50% + 6px);height:134px}
-.acctcard .rowcard,.acctcard .pill,.acctcard .status{position:relative}
+.hero.acct .art{width:46%;right:4px;top:18px}
+.hero.acct .art img{position:absolute;bottom:0;max-height:88%}
+.hero.acct .art .a{right:calc(50% - 4px);transform:scaleX(-1)}
+.hero.acct .art .b{left:calc(50% - 4px)}
+.hero.acct .txt{max-width:54%}
+.hero.acct h1{font-size:1.4rem;overflow-wrap:anywhere}
+.hero.acct .status{position:relative;z-index:2}
 
 /* warm-up card */
 .wucard{background:var(--aqua2)}

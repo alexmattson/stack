@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { PageHeader, BackButton, Card, Pill, RowCard, IconBubble, Logo, Status, useStatus, IMG } from "../components/ui.jsx";
+import { PageHeader, BackButton, Card, Pill, RowCard, IconBubble, Icon, Logo, Status, useStatus, IMG } from "../components/ui.jsx";
 import { DOW, today } from "../lib/dates.js";
 import SEED from "../seed.json";
 
@@ -12,12 +12,12 @@ export function AccountPage({ data, auth, onBack, onManage, go, onReplayOnboardi
   return (
     <section id="settings">
       <PageHeader left={<BackButton onClick={onBack}/>} title="Account" sub="Sync, data and app details"/>
-      <Card tone="aqua" className="acctcard" style={{display:"grid", gap:12}}>
-        <div className="acct-art"><img className="a" src={IMG("acct-man.png")} alt=""/><img className="b" src={IMG("acct-woman.png")} alt=""/></div>
-        <RowCard icon={<IconBubble name="user"/>} title={g ? (u.displayName || u.email || "Signed in") : "Device only"} sub={g ? `${u.email || "Google account"} · progress follows you everywhere.` : "Saved on this device. Sign in to keep it everywhere you train."}/>
-        {!g && <Pill big onClick={auth.google}>Continue with Google</Pill>}
-        {g && <Pill big ghost onClick={auth.logout}>Sign out</Pill>}
+      <Card tone="aqua hero acct">
+        <div className="txt"><div className="eyebrow">{g ? "Signed in" : "Device only"}</div><h1>{g ? (u.displayName || u.email || "Signed in") : "Just this device"}</h1><p>{g ? `${u.email || "Google account"} · progress follows you everywhere.` : "Saved on this device. Sign in to keep it everywhere you train."}</p></div>
+        {!g && <Pill onClick={auth.google}><Icon name="google" className="gicon"/><span>Continue with Google</span></Pill>}
+        {g && <Pill onClick={auth.logout}><Icon name="user" className="gicon"/><span>Sign out</span></Pill>}
         <Status text={auth.error}/>
+        <div className="art"><img className="a" src={IMG("acct-man.png")} alt=""/><img className="b" src={IMG("acct-woman.png")} alt=""/></div>
       </Card>
       <h2>Your data</h2>
       <Card style={{display:"grid", gap:10}}>
