@@ -523,3 +523,8 @@ input,textarea,select{font-size:max(16px,1em)}
 .vbar .band{background:rgba(42,138,106,.14);border-left:2px solid var(--good);border-right:2px solid var(--good);border-radius:0;box-sizing:border-box}
 .vbar .plan{background:var(--aqua);height:16px;border-radius:6px}
 .vbar .done{background:var(--teal);height:6px;top:5px;border-radius:999px}
+
+/* small in-page tabs */
+.tabs2{display:grid;grid-template-columns:1fr 1fr;gap:4px;background:var(--bg2);border-radius:999px;padding:4px;margin-bottom:10px}
+.tabs2 button{border:0;background:transparent;color:var(--muted);border-radius:999px;padding:9px 0;font-weight:800;cursor:pointer;font-family:inherit}
+.tabs2 button[aria-pressed="true"]{background:var(--card);color:var(--ink);box-shadow:0 1px 3px rgba(21,48,58,.12)}

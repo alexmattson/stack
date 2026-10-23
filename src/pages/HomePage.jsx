@@ -41,7 +41,8 @@ const CheckinCard = ({ data }) => {
 };
 const RecoveryTile = ({ recov, readiness }) => (
   <div className="tile" style={{gridColumn:"span 2"}}>
-    <div className="top"><IconBubble name="check"/>Recovery{readiness.score != null && <span className={`chip rd ${readiness.level}`}>Readiness {readiness.score}</span>}</div>
+    <div className="top"><IconBubble name="check"/>Ready to train{readiness.score != null && <span className={`chip rd ${readiness.level}`}>Readiness {readiness.score}</span>}</div>
+    <small className="muted" style={{fontSize:".74rem", marginTop:-4}}>Full bar = fresh. Short bar = still recovering from recent sets.</small>
     <div className="recov">{MUSCLES.map(m => <div key={m} className="rc"><small>{MUSCLE_LABEL[m]}</small><span className="bar"><i style={{width:`${recov[m]}%`}} className={recov[m] < 50 ? "low" : recov[m] < 80 ? "mid" : ""}/></span></div>)}</div>
   </div>
 );
