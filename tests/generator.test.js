@@ -60,3 +60,23 @@ test("readiness and recovery", () => {
   const r = recovery([{date:"2026-10-20", savedAt:new Date().toISOString(), sets:{flat_press:[{w:35,r:10},{w:35,r:10},{w:35,r:10},{w:35,r:10}]}}]);
   assert.ok(r.chest < 100 && r.legs === 100);
 });
+
+import { warmups, platesPerSide } from "../src/lib/warmup.js";
+import { alternatives } from "../src/lib/program.js";
+test("warm-ups ramp below the working weight and snap to owned weights", () => {
+  assert.deepEqual(warmups("flat_press", 40, g50).map(s => s.w), [20, 30, 35]);
+  assert.deepEqual(warmups("lateral", 15, g50), []);          // isolation: no ramp
+  assert.deepEqual(warmups("chinup", 0, g50), []);             // bodyweight: no ramp
+});
+test("plates per side", () => {
+  assert.deepEqual(platesPerSide(135, 45, [45,25,10,5,2.5]), [45]);
+  assert.deepEqual(platesPerSide(185, 45, [45,25,10,5,2.5]), [45,25]);
+  assert.equal(platesPerSide(101, 45, [45,25,10,5,2.5]), null);
+});
+test("supersets pair the last two isolation lifts; swaps stay in the muscle group", () => {
+  const p = buildProgram({gear:g50, prog:PROGRAM_DEFAULTS, trainingDays:[1,2,4,5]});
+  assert.ok(p.every(d => d.ex.filter(e => e[7] === "A").length === 2));
+  const off = buildProgram({gear:g50, prog:{...PROGRAM_DEFAULTS, supersets:false}, trainingDays:[1,2,4,5]});
+  assert.ok(off.every(d => d.ex.every(e => !e[7])));
+  assert.ok(alternatives("row", g50, ["row"]).every(x => x.group === "back"));
+});

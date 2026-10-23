@@ -168,7 +168,7 @@ export function buildProgram(opts){
   const bwMult = Math.pow((prog.bodyweight || 150) / 150, 0.7);
   const startFor = e => { if (e.bw) return 0; const w = Math.max(5, Math.round(e.start * expMult * bwMult / 5) * 5); return ladder(e.equip, gear).nearest(w); };
   const repsFor = e => e.bw && e.region !== "core" ? "max" : e.timed ? "20–45" : e.region === "core" && e.bw ? "10–15" : rep[e.kind];
-  const toRow = (e, sets) => [e.key, e.name, sets || setsFor(e), repsFor(e), startFor(e), e.q, e.g];
+  const toRow = (e, sets) => [e.key, e.name, sets || setsFor(e), repsFor(e), startFor(e), e.q, e.g, null];
 
   const split = chooseSplit(days, focus);
   const usedCount = {};                                  // spread variety across the week
@@ -191,7 +191,15 @@ export function buildProgram(opts){
     const meta = DAY_META[d.kind];
     return {key:"d"+(i+1), name:meta.name, focus:meta.focus + (coreEx.length ? " · Abs" : ""), ex:[...ex.map(e => toRow(e)), ...coreEx.map(e => toRow(e, 2))]};
   });
-  return rebalance(program, focus);
+  const balanced = rebalance(program, focus);
+  if (prog.supersets !== false) balanced.forEach(d => pairIsolation(d));
+  return balanced;
+}
+// Superset: the last two isolation lifts that work different muscles share a pair tag ("A").
+function pairIsolation(day){
+  const iso = day.ex.map((e, i) => [e, i]).filter(([e]) => LIB_BY_KEY[e[0]] && LIB_BY_KEY[e[0]].kind === "iso" && LIB_BY_KEY[e[0]].region !== "core");
+  for (let a = iso.length - 1; a > 0; a--) { const [ea, ia] = iso[a], [eb, ib] = iso[a - 1];
+    if (MUSCLE[LIB_BY_KEY[ea[0]].group] !== MUSCLE[LIB_BY_KEY[eb[0]].group] && Math.abs(ia - ib) === 1 && ea[2] === eb[2]) { ea[7] = "A"; eb[7] = "A"; return; } }
 }
 
 // Keep weekly hard sets per muscle inside the growth window: add a set to the lifts of an
@@ -214,7 +222,7 @@ function rebalance(program, focus){
   return program;
 }
 
-export const PROGRAM_DEFAULTS = {focus:["upper","core"], goal:"size", length:"standard", experience:"some", bodyweight:150, excluded:[]};
+export const PROGRAM_DEFAULTS = {focus:["upper","core"], goal:"size", length:"standard", experience:"some", bodyweight:150, excluded:[], supersets:true};
 
 export const BODYWEIGHT_EX = new Set(LIB.filter(e => e.bw).map(e => e.key));
 export const CORE_BW = new Set(LIB.filter(e => e.bw && e.region === "core").map(e => e.key));
@@ -224,13 +232,13 @@ export const EX_IMG = Object.fromEntries(LIB.map(e => [e.key, e.img]));
 export const exImg = key => `${(typeof import.meta !== "undefined" && import.meta.env && import.meta.env.BASE_URL) || "/"}img/ex-${EX_IMG[key] || "press"}.png`;
 export const howTo = q => "https://www.youtube.com/results?search_query=" + encodeURIComponent("how to " + q);
 export const GEAR_DEFAULTS = {v2:true, dumbbells:[10,15,20,25,30,35,40,45,50], bar:true, bench:"incline", equipment:["dumbbells","bench","bar"],
-  kettlebells:[], barbell:{bar:45, plateMin:2.5, max:300}, ezbar:{bar:25}, cable:{max:200, inc:10}, bands:["light","medium","heavy"]};
+  kettlebells:[], barbell:{bar:45, plateMin:2.5, max:300, plates:[45,25,10,5,2.5]}, ezbar:{bar:25}, cable:{max:200, inc:10}, bands:["light","medium","heavy"]};
 export const KB_WEIGHTS = [10,15,20,25,30,35,40,45,50,53,60,70,80];
 export const normalizeGear = g => {
   const legacy = !Array.isArray(g.equipment) || !g.equipment.includes("dumbbells") && !g.equipment.includes("bench") && (g.dumbbells || []).length > 0 && !g.v2;
   const eq = new Set(Array.isArray(g.equipment) ? g.equipment : (g.bar !== false ? ["bar"] : []));
   if (legacy) { if ((g.dumbbells || []).length) eq.add("dumbbells"); if (g.bench && g.bench !== "none") eq.add("bench"); }
-  return {...GEAR_DEFAULTS, ...g, v2:true, barbell:{...GEAR_DEFAULTS.barbell, ...(g.barbell||{})}, ezbar:{...GEAR_DEFAULTS.ezbar, ...(g.ezbar||{})}, cable:{...GEAR_DEFAULTS.cable, ...(g.cable||{})},
+  return {...GEAR_DEFAULTS, ...g, v2:true, barbell:{...GEAR_DEFAULTS.barbell, ...(g.barbell||{}), plates:(g.barbell && Array.isArray(g.barbell.plates) && g.barbell.plates.length) ? g.barbell.plates : GEAR_DEFAULTS.barbell.plates}, ezbar:{...GEAR_DEFAULTS.ezbar, ...(g.ezbar||{})}, cable:{...GEAR_DEFAULTS.cable, ...(g.cable||{})},
     kettlebells:Array.isArray(g.kettlebells)?g.kettlebells:[], bands:Array.isArray(g.bands)?g.bands:GEAR_DEFAULTS.bands, dumbbells:Array.isArray(g.dumbbells)?g.dumbbells:[],
     equipment:[...eq], bar:eq.has("bar"), bench: eq.has("bench") ? (g.bench === "flat" ? "flat" : "incline") : "none"};
 };
@@ -251,5 +259,19 @@ export function ladder(equip, gear){
   return { next: w => w + 5, prev: w => Math.max(5, w - 5), nearest: w => w, max: Infinity };
 }
 // Stored session plans are rows of objects (Firestore forbids nested arrays); in code they are arrays.
-export const planToStore = ex => ex.map(e => Array.isArray(e) ? {key:e[0], name:e[1], sets:e[2], reps:e[3], w:e[4], q:e[5], g:e[6]} : e);
-export const planFromStore = pl => (pl || []).map(e => Array.isArray(e) ? e : [e.key, e.name, e.sets, e.reps, e.w, e.q, e.g]);
+export const planToStore = ex => ex.map(e => Array.isArray(e) ? {key:e[0], name:e[1], sets:e[2], reps:e[3], w:e[4], q:e[5], g:e[6], pair:e[7] || null} : e);
+export const planFromStore = pl => (pl || []).map(e => Array.isArray(e) ? e : [e.key, e.name, e.sets, e.reps, e.w, e.q, e.g, e.pair || null]);
+// Alternatives for a swap: same muscle group, usable with this gear, not already in the day.
+export function alternatives(key, gear, dayKeys){
+  const e = LIB_BY_KEY[key]; if (!e) return [];
+  const have = new Set(gear.equipment || []); if (gear.bar) have.add("bar"); if (gear.bench && gear.bench !== "none") have.add("bench"); if (gear.bench === "incline") have.add("incline");
+  const ok = x => x.needs.every(n => have.has(n)) && !x.unless.some(n => have.has(n)) && (x.bw || (x.equip === "db" ? (have.has("dumbbells") && gear.dumbbells.length > 0) : x.equip === "kb" ? (gear.kettlebells||[]).length > 0 : true));
+  return LIB.filter(x => x.key !== key && x.group === e.group && ok(x) && !dayKeys.includes(x.key)).sort((a, b) => a.pri - b.pri);
+}
+export function rowFor(x, gear, prog){
+  const rep = {size:{compound:"8–12", iso:"12–15"}, strength:{compound:"5–8", iso:"8–12"}, endurance:{compound:"12–15", iso:"15–20"}}[prog.goal || "size"];
+  const expMult = {new:0.8, some:1, experienced:1.2}[prog.experience || "some"]; const bwMult = Math.pow((prog.bodyweight || 150) / 150, 0.7);
+  const w = x.bw ? 0 : ladder(x.equip, gear).nearest(Math.max(5, Math.round(x.start * expMult * bwMult / 5) * 5));
+  const reps = x.bw && x.region !== "core" ? "max" : x.timed ? "20–45" : x.region === "core" && x.bw ? "10–15" : rep[x.kind];
+  return [x.key, x.name, x.kind === "compound" ? 4 : 3, reps, w, x.q, x.g, null];
+}

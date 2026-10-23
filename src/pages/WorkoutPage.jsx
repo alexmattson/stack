@@ -3,6 +3,7 @@ import { PageHeader, BackButton, IconButton, Card, Pill, Icon, IconBubble, BigIn
 import { useRestTimer } from "../hooks/useRestTimer.js";
 import { fmtDate } from "../lib/dates.js";
 import { exImg, TIMED } from "../lib/program.js";
+import { warmups } from "../lib/warmup.js";
 
 const RestBar = ({ timer, nextText, onSkip }) => (
   <div className={`timer ${timer.active ? "on" : ""} ${timer.done ? "go" : ""}`}>
@@ -69,12 +70,14 @@ const SetRow = ({ ex, i, wo, draft, setDraft, onSave, current }) => {
   );
 };
 
-const ExerciseCard = ({ ex, ei, wo, draft, setDraft, onSave, onFocus, status }) => {
-  const [key, name, n, reps, , q, g] = ex; const bw = wo.isBW(key); const sg = wo.suggestions[key];
+const ExerciseCard = ({ ex, ei, wo, draft, setDraft, onSave, onFocus, status, note, gear }) => {
+  const [key, name, n, reps, , q, g, pair] = ex; const bw = wo.isBW(key); const sg = wo.suggestions[key];
+  const wu = !wo.savedSet(key, 0) ? warmups(key, sg.w, gear) : [];
   const target = bw ? sg.reps.map(r => r ?? "max").join(", ") : `${sg.w} lb × ${sg.reps.join(", ")}`;
   return (
     <div className="exl">
-      <div className="hd"><IconBubble name={ei < 3 ? "push" : "pull"}/><div style={{minWidth:0}}><b>{name}</b><small>{n} × {reps}{bw ? "" : ` · ${sg.w} lb`}</small></div><span className="chip">{target.length > 18 ? (sg.w ? sg.w + " lb" : "max") : target}</span></div>
+      <div className="hd"><IconBubble name={ei < 3 ? "push" : "pull"}/><div style={{minWidth:0}}><b>{name}{pair && <span className="chip ss">Superset</span>}</b><small>{n} × {reps}{bw ? "" : ` · ${sg.w} lb`}{wu.length ? ` · warm up ${wu.map(s => s.w + "×" + s.r).join(", ")}` : ""}</small></div><span className="chip">{target.length > 18 ? (sg.w ? sg.w + " lb" : "max") : target}</span></div>
+      {note && <div className="exnote">{note}</div>}
       <div className="links"><a href={g} target="_blank" rel="noopener">guide</a> · <a href="#" onClick={e => { e.preventDefault(); onFocus(ei); }}>focus</a> · <span>{sg.why}</span></div>
       <div className="setrows">{Array.from({length:n}, (_, i) => <SetRow key={i} ex={ex} i={i} wo={wo} draft={draft} setDraft={setDraft} onSave={onSave} current={wo.ptr.ei === ei && wo.ptr.si === i}/>)}</div>
       <div className={`exstatus ${status && status.key === key ? (status.ok ? "ok" : "bad") : ""}`}>{status && status.key === key ? status.text : ""}</div>
@@ -99,7 +102,7 @@ export function WorkoutPage({ data, wo, date, onBack, onFocus }){
   useEffect(() => { if (!cur) return; const [key] = cur; const sg = wo.suggestions[key]; const sv = wo.savedSet(key, wo.ptr.si); setW(wo.isBW(key) ? "" : String(sv ? sv.w : sg.w)); setR(String(sv ? sv.r : (sg.reps[wo.ptr.si] ?? ""))); }, [wo.ptr, wo.id]); // eslint-disable-line
   useEffect(() => { setDraft({}); timer.stop(); setNote(wo.session?.note || ""); }, [wo.id]); // eslint-disable-line
 
-  const startRest = (key, isLast, nxt) => { const nex = wo.day.ex[nxt.ei]; setNextText(`Next: ${nex[1]} · set ${nxt.si + 1} of ${nex[2]}`); prime(); timer.start(wo.restFor(key, isLast)); };
+  const startRest = (key, isLast, nxt, from) => { const nex = wo.day.ex[nxt.ei]; setNextText(`Next: ${nex[1]} · set ${nxt.si + 1} of ${nex[2]}`); prime(); timer.start(wo.restFor(key, isLast, from, nxt)); };
   const persist = async (key, i, wv, rv, fromList) => {
     const bw = wo.isBW(key);
     if (!rv) return fromList ? setExStatus({key, text:`Enter the reps for set ${i + 1}.`}) : setStatus("Enter the reps you got.");
@@ -112,7 +115,7 @@ export function WorkoutPage({ data, wo, date, onBack, onFocus }){
     const from = fromList ? {ei: wo.day.ex.findIndex(e => e[0] === key), si:i} : wo.ptr;
     const nxt = wo.nextOpen(from);
     if (!nxt) { setFinish("All sets logged. Tap Finish session.", true); timer.stop(); return; }
-    const ex = wo.day.ex[from.ei]; startRest(key, i + 1 >= ex[2], nxt); wo.setPtr(nxt);
+    startRest(key, wo.isLastInSeq(from) || (wo.nextInSeq(from).ei !== from.ei), nxt, from); wo.setPtr(nxt);
   };
   const finish = async () => {
     const pending = [];
@@ -127,7 +130,7 @@ export function WorkoutPage({ data, wo, date, onBack, onFocus }){
       {wo.isDeload && <div className="warn" style={{background:"var(--aqua2)"}}><b>Deload week.</b> Half the sets, same weights, bottom of each rep range. Next week starts a new block.</div>}
       <StartCard wo={wo} timer={timer} nextText={nextText} onSkipRest={() => timer.stop()} onStart={() => { const p = wo.nextOpen(); if (p) wo.setPtr(p); onFocus(); }}/>
       <textarea className="note" value={note} onChange={e => setNote(e.target.value)} placeholder="Session notes: energy, sleep, what felt heavy"/>
-      <div>{wo.day.ex.map((ex, ei) => <ExerciseCard key={ex[0] + ei} ex={ex} ei={ei} wo={wo} draft={draft} setDraft={setDraft} status={exStatus} onSave={(key, i, wv, rv) => persist(key, i, wv, rv, true)} onFocus={ei => { let si = 0; const ex = wo.day.ex[ei]; for (let k = 0; k < ex[2]; k++) if (!wo.savedSet(ex[0], k)) { si = k; break; } wo.setPtr({ei, si}); onFocus(); }}/>)}</div>
+      <div>{wo.day.ex.map((ex, ei) => <ExerciseCard key={ex[0] + ei} ex={ex} ei={ei} wo={wo} draft={draft} setDraft={setDraft} status={exStatus} note={data.notes[ex[0]]} gear={data.gear} onSave={(key, i, wv, rv) => persist(key, i, wv, rv, true)} onFocus={ei => { let si = 0; const ex = wo.day.ex[ei]; for (let k = 0; k < ex[2]; k++) if (!wo.savedSet(ex[0], k)) { si = k; break; } wo.setPtr({ei, si}); onFocus(); }}/>)}</div>
       <Status text={finishStatus.text} ok={finishStatus.ok}/>
       <div className="fsave fsave-row">{wo.session && <button className="pill ghost clearbtn" aria-label="Clear workout" title="Clear workout" onClick={() => setConfirmClear(true)}><Icon name="trash" className="gicon"/></button>}<button className={`pill big ${finishStatus.ok && finishStatus.text ? "saved" : ""}`} onClick={finish}>{finishStatus.ok && finishStatus.text ? <><Icon name="tick" className="gicon"/><span>Session saved</span></> : "Finish session"}</button></div>
     </section>

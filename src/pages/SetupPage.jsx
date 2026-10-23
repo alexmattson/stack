@@ -34,6 +34,7 @@ export const Options = ({ kind, g, setG, equip }) => {
     <div className="inv"><div className="eyebrow">Bar &amp; plates</div>
       <div className="invrow"><span>Bar weight</span><div className="segc small">{[[45,"45"],[35,"35"],[15,"15"]].map(([v, l]) => <button key={v} aria-pressed={b.bar === v} onClick={() => sb({bar:v})}>{l} lb</button>)}</div></div>
       <div className="invrow"><span>Smallest plate</span><div className="segc small">{[[1.25,"1¼"],[2.5,"2½"],[5,"5"],[10,"10"]].map(([v, l]) => <button key={v} aria-pressed={b.plateMin === v} onClick={() => sb({plateMin:v})}>{l}</button>)}</div></div>
+      <div className="invrow"><span>Plates you own</span><div className="wgrid four">{[45,35,25,10,5,2.5,1.25].map(pl => <button key={pl} aria-pressed={(b.plates || []).includes(pl)} onClick={() => sb({plates:(b.plates || []).includes(pl) ? b.plates.filter(x => x !== pl) : [...(b.plates || []), pl]})}>{pl}</button>)}</div></div>
       <div className="invrow"><span>Max you can load</span><div className="numin"><input type="number" inputMode="numeric" step="5" value={b.max} onChange={e => sb({max:+e.target.value || 0})}/><small>lb</small></div></div>
       <p className="muted mini-note">Barbell lifts move up by two of your smallest plate and stop at the max.</p>
     </div>); }
@@ -87,6 +88,9 @@ export function GoalsPage({ data, onBack }){
       <h2>Session length</h2>
       <Segmented options={[["short","~30 min"],["standard","~45 min"],["long","~60 min"]]} value={p.length} onChange={v => setP({...p, length:v})}/>
 
+      <h2>Session style</h2>
+      <Card><RowCard title="Superset accessories" sub="Pair the last two isolation lifts of each day, 30 s between them. Shorter sessions, same work." right={<Toggle on={p.supersets !== false} onChange={v => setP({...p, supersets:v})} label="Supersets"/>}/></Card>
+
       <h2>About you</h2>
       <Card style={{display:"grid", gap:12}}>
         <div><div className="eyebrow" style={{marginBottom:6}}>Lifting experience</div><Segmented options={[["new","New"],["some","Some"],["experienced","Experienced"]]} value={p.experience} onChange={v => setP({...p, experience:v})}/></div>
@@ -100,9 +104,12 @@ export function GoalsPage({ data, onBack }){
 }
 
 export function EquipmentPage({ data, onBack }){
-  const { gear } = data;
+  const { gear, gyms } = data;
   const [g, setG] = useState(gear);
   useEffect(() => { setG(gear); }, [gear]);
+  const [naming, setNaming] = useState(false); const [newName, setNewName] = useState("");
+  const addGym = async () => { const name = newName.trim() || "Gym " + (gyms.list.length + 1); const id = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "gym" + Date.now(); const list = [...gyms.list.map(x => x.id === gyms.active ? {...x, gear} : x), {id, name, gear:JSON.parse(JSON.stringify(gear))}]; await data.api.saveGyms(list, id); setNaming(false); setNewName(""); };
+  const removeGym = async id => { if (gyms.list.length <= 1) return; const list = gyms.list.filter(x => x.id !== id); const active = gyms.active === id ? list[0].id : gyms.active; await data.api.saveGyms(list, active); if (gyms.active === id) await data.api.switchGym(active); };
   const dirty = !same(g, gear);
   const equip = new Set(g.equipment || []);
   const toggleEquip = k => { const n = new Set(equip); n.has(k) ? n.delete(k) : n.add(k);
@@ -121,6 +128,13 @@ export function EquipmentPage({ data, onBack }){
     <section id="gear">
       <PageHeader left={<BackButton onClick={onBack}/>} title="Equipment" sub="What you have to work with"/>
       <Card tone="aqua" className="rowcard" style={{overflow:"hidden", minHeight:120}}><div className="grow"><b>Your gym</b><small>The plan only uses what you own, and progression only suggests weights you have.</small></div><img src={IMG("gear.png")} alt="" style={{width:"46%", maxWidth:190, height:"auto", margin:"-26px -30px -30px 0", filter:"drop-shadow(0 10px 14px rgba(21,48,58,.25))"}}/></Card>
+
+      <h2>Gym</h2>
+      <Card style={{display:"grid", gap:10}}>
+        <div className="gyms">{gyms.list.map(x => <button key={x.id} className="gymchip" aria-pressed={x.id === gyms.active} onClick={() => x.id !== gyms.active && data.api.switchGym(x.id)}>{x.name}</button>)}<button className="gymchip add" onClick={() => setNaming(true)}>+ Add</button></div>
+        {naming && <div className="rowi" style={{margin:0, gap:8}}><input value={newName} placeholder="Work gym, Travel…" onChange={e => setNewName(e.target.value)} style={{flex:1}}/><Pill className="mini" onClick={addGym}>Create</Pill><Pill ghost className="mini" onClick={() => setNaming(false)}>Cancel</Pill></div>}
+        <small className="muted">Each gym keeps its own equipment. Switch gyms and the plan rebuilds for what's there.{gyms.list.length > 1 && <> · <button className="linkbtn" onClick={() => removeGym(gyms.active)}>Remove this gym</button></>}</small>
+      </Card>
 
       <h2>What you have</h2>
       <Card style={{display:"grid", gap:14}}>{EQUIPMENT.map(e => (

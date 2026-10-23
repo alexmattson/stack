@@ -1,5 +1,6 @@
 import { useMemo, useState, useCallback, useEffect } from "react";
 import { suggest } from "../lib/progression.js";
+import { alternatives, rowFor } from "../lib/program.js";
 import { planFromStore, BODYWEIGHT_EX, LIB_BY_KEY } from "../lib/program.js";
 import { COMPOUND } from "../lib/program.js";
 import { REST } from "../lib/progression.js";
@@ -26,14 +27,27 @@ export function useWorkout(data, date, dayIdx){
   const total = day.ex.reduce((a, e) => a + e[2], 0);
   const savedSet = useCallback((key, i) => session && session.sets[key] && session.sets[key][i] && session.sets[key][i].r ? session.sets[key][i] : null, [session]);
   const doneCount = session ? Object.values(session.sets).reduce((a, arr) => a + arr.filter(x => x.r).length, 0) : 0;
-  const nextOpen = useCallback(from => { let started = !from; for (let ei = 0; ei < day.ex.length; ei++) for (let si = 0; si < day.ex[ei][2]; si++) { if (!started) { if (ei === from.ei && si === from.si) started = true; continue; } if (!savedSet(day.ex[ei][0], si)) return {ei, si}; } return null; }, [day, savedSet]);
+  // The order sets are done in. Paired lifts (supersets) alternate set by set: A1, B1, A2, B2…
+  const sequence = useMemo(() => { const seq = []; const done = new Set();
+    day.ex.forEach((e, ei) => { if (done.has(ei)) return; const partner = e[7] ? day.ex.findIndex((x, j) => j > ei && x[7] === e[7]) : -1;
+      if (partner >= 0) { const n = Math.max(e[2], day.ex[partner][2]); for (let si = 0; si < n; si++) { if (si < e[2]) seq.push({ei, si}); if (si < day.ex[partner][2]) seq.push({ei:partner, si}); } done.add(ei); done.add(partner); }
+      else { for (let si = 0; si < e[2]; si++) seq.push({ei, si}); done.add(ei); } });
+    return seq; }, [day]);
+  const seqIndex = p => sequence.findIndex(x => x.ei === p.ei && x.si === p.si);
+  const nextOpen = useCallback(from => { const start = from ? seqIndex(from) + 1 : 0; for (let i = start; i < sequence.length; i++) { const p = sequence[i]; if (!savedSet(day.ex[p.ei][0], p.si)) return p; } return null; }, [day, savedSet, sequence]); // eslint-disable-line
+  const prevInSeq = p => sequence[Math.max(0, seqIndex(p) - 1)] || p;
+  const nextInSeq = p => sequence[Math.min(sequence.length - 1, seqIndex(p) + 1)] || p;
+  const isLastInSeq = p => seqIndex(p) >= sequence.length - 1;
   const [ptr, setPtr] = useState({ei:0, si:0});
   useEffect(() => { setPtr(nextOpen() || {ei:0, si:0}); }, [id]); // eslint-disable-line
   const flatIndex = p => { let n = 0; for (let ei = 0; ei < p.ei; ei++) n += day.ex[ei][2]; return n + p.si; };
   const ctx = {deload:isDeload, readiness: date === data.today ? data.readiness.level : "unknown"};
   const suggestions = useMemo(() => Object.fromEntries(day.ex.map(e => [e[0], suggest(e, sessions, data.gear, ctx)])), [day, sessions, data.gear, isDeload, ctx.readiness]); // eslint-disable-line
-  const restFor = (key, isLast) => isLast ? REST.last : COMPOUND.has(key) ? REST.compound : REST.iso;
+  // Inside a superset the rest between the pair is short; the full rest comes after the second lift.
+  const restFor = (key, isLast, from, nxt) => { if (from && nxt && day.ex[from.ei][7] && day.ex[from.ei][7] === day.ex[nxt.ei][7] && from.ei !== nxt.ei) return REST.superset; return isLast ? REST.last : COMPOUND.has(key) ? REST.compound : REST.iso; };
+  const swap = (oldKey, alt) => api.swapExercise(id, date, dayIdx, oldKey, rowFor(alt, data.gear, data.prog));
+  const alts = key => alternatives(key, data.gear, day.ex.map(e => e[0]));
   const save = async (key, i, w, r, e) => { const pr = detectPR(data.prs, key, w, r); await api.saveSet(id, date, dayIdx, key, i, w, r, e); return pr; };
   const finish = (pending, note) => api.finish(id, date, dayIdx, pending, note);
-  return { id, session, day, total, doneCount, savedSet, nextOpen, ptr, setPtr, flatIndex, suggestions, restFor, save, finish, isBW: key => BODYWEIGHT_EX.has(key), isDeload, cycle:cyc };
+  return { id, session, day, total, doneCount, savedSet, nextOpen, ptr, setPtr, flatIndex, suggestions, restFor, save, finish, isBW: key => BODYWEIGHT_EX.has(key), isDeload, cycle:cyc, sequence, seqIndex, prevInSeq, nextInSeq, isLastInSeq, swap, alts };
 }

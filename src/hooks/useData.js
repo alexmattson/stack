@@ -13,6 +13,8 @@ export function useData(uid){
   const [sessions, setSessions] = useState([]);
   const [bodylog, setBodylog] = useState([]);
   const [checkins, setCheckins] = useState([]);
+  const [notes, setNotes] = useState({});
+  const [gyms, setGyms] = useState({active:"home", list:[{id:"home", name:"Home"}]});
   const [gear, setGear] = useState(GEAR_DEFAULTS);
   const [prog, setProg] = useState(PROGRAM_DEFAULTS);
   const [trainingDays, setTrainingDays] = useState([1, 2, 4, 5]);
@@ -28,6 +30,8 @@ export function useData(uid){
       db.watchCol("sessions", s => { setSessions(s); setLoaded(true); }, e => setError("Lost connection to your log: " + (e.message || ""))),
       db.watchCol("bodylog", setBodylog, () => {}),
       db.watchCol("checkins", setCheckins, () => {}),
+      db.watchDoc("settings/exnotes", d => setNotes(d || {}), () => {}),
+      db.watchDoc("settings/gyms", d => { if (d && Array.isArray(d.list) && d.list.length) setGyms({active:d.active || d.list[0].id, list:d.list}); }, () => {}),
       db.watchDoc("settings/equipment", d => { setSettingsSeen(s => ({...s, equipment:!!d})); if (d && Array.isArray(d.dumbbells)) setGear(normalizeGear(d)); }, () => setSettingsSeen(s => ({...s, equipment:false}))),
       db.watchDoc("settings/program", d => { setSettingsSeen(s => ({...s, program:!!d})); if (d && Array.isArray(d.focus)) setProg({...PROGRAM_DEFAULTS, ...d}); }, () => setSettingsSeen(s => ({...s, program:false}))),
       db.watchDoc("settings/schedule", d => { setSettingsSeen(s => ({...s, schedule:!!d})); if (d && Array.isArray(d.trainingDays)) setTrainingDays(d.trainingDays.slice()); }, () => setSettingsSeen(s => ({...s, schedule:false}))),
@@ -65,11 +69,16 @@ export function useData(uid){
   const api = {
     saveSet: (id, date, dayIdx, key, i, w, r, e) => writeSession(id, date, dayIdx, d => { d.sets[key] = d.sets[key] || []; while (d.sets[key].length <= i) d.sets[key].push({w:0, r:0}); d.sets[key][i] = e ? {w, r, e} : {w, r}; }),
     saveCheckin: c => db.set("checkins/" + today(), {date:today(), ...c}),
+    saveNote: (key, text) => { const n = {...notes, [key]:text}; if (!text) delete n[key]; setNotes(n); return db.set("settings/exnotes", n); },
+    swapExercise: (id, date, dayIdx, oldKey, row) => writeSession(id, date, dayIdx, d => { const pl = d.plan.map(e => e.key === oldKey ? {key:row[0], name:row[1], sets:e.sets, reps:row[3], w:row[4], q:row[5], g:row[6], pair:e.pair || null} : e); d.plan = pl; delete d.sets[oldKey]; }),
+    // Gym profiles: the active gym's gear is what settings/equipment holds; the list keeps each gym's gear.
+    saveGyms: async (list, active) => { setGyms({list, active}); await db.set("settings/gyms", {list, active}); },
+    switchGym: async id => { const g = gyms.list.find(x => x.id === id); if (!g || !g.gear) return; setGyms({...gyms, active:id}); setGear(normalizeGear(g.gear)); await Promise.all([db.set("settings/gyms", {...gyms, active:id}), db.set("settings/equipment", normalizeGear(g.gear))]); },
     finish: (id, date, dayIdx, pending, note) => writeSession(id, date, dayIdx, d => { pending.forEach(({key, i, w, r}) => { d.sets[key] = d.sets[key] || []; while (d.sets[key].length <= i) d.sets[key].push({w:0, r:0}); d.sets[key][i] = {w, r}; }); d.note = note; }),
     deleteSession: id => db.del("sessions/" + id).then(() => setSessions(p => p.filter(s => s.id !== id))),
     addBodylog: (date, weight, arm) => db.set("bodylog/" + date, {date, weight:weight || null, arm:arm || null}),
     saveSchedule: days => { setTrainingDays(days); return db.set("settings/schedule", {trainingDays:days}); },
-    saveSetup: (g, p) => { setGear(g); setProg(p); return Promise.all([db.set("settings/equipment", g), db.set("settings/program", p)]); },
+    saveSetup: (g, p) => { setGear(g); setProg(p); const list = gyms.list.map(x => x.id === gyms.active ? {...x, gear:g} : x); setGyms({...gyms, list}); return Promise.all([db.set("settings/equipment", g), db.set("settings/program", p), db.set("settings/gyms", {...gyms, list})]); },
     saveExcluded: excluded => { const p = {...prog, excluded}; setProg(p); return db.set("settings/program", p); },
     completeOnboarding: (g, p, days) => { setGear(g); setProg(p); setTrainingDays(days); return Promise.all([db.set("settings/equipment", g), db.set("settings/program", p), db.set("settings/schedule", {trainingDays:days})]); },
     importSeed: async seed => { const entries = []; for (const [id, d] of Object.entries(seed.sessions || {})) entries.push(["sessions/" + id, {...d, plan:planToStore(d.plan || [])}]); for (const [id, d] of Object.entries(seed.bodylog || {})) entries.push(["bodylog/" + id, d]); for (const [id, d] of Object.entries(seed.settings || {})) entries.push(["settings/" + id, d]); await db.batchSet(entries); },
@@ -80,5 +89,5 @@ export function useData(uid){
   const week = (() => { const dates = [...sessions.map(s => s.date), ...bodylog.map(b => b.date)].sort(); if (!dates.length) return 1; return Math.max(1, Math.floor((Date.now() - new Date(dates[0] + "T12:00:00")) / 864e5 / 7) + 1); })();
   const todayAlert = trainingDays.includes(new Date().getDay()) && !sessions.some(s => s.date === t);
   const needsOnboarding = settingsKnown && !settingsSeen.program && !settingsSeen.equipment && sessions.length === 0;
-  return { sessions, bodylog, checkins, gear, prog, trainingDays, program, dbs, profile, isAdmin: profile.isAdmin === true, loaded: loaded && settingsKnown, needsOnboarding, error, api, today: t, week, todayAlert, cycle, prs, recov, todayCheckin, readiness };
+  return { sessions, bodylog, checkins, notes, gyms, gear, prog, trainingDays, program, dbs, profile, isAdmin: profile.isAdmin === true, loaded: loaded && settingsKnown, needsOnboarding, error, api, today: t, week, todayAlert, cycle, prs, recov, todayCheckin, readiness };
 }

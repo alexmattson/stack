@@ -528,3 +528,32 @@ input,textarea,select{font-size:max(16px,1em)}
 .tabs2{display:grid;grid-template-columns:1fr 1fr;gap:4px;background:var(--bg2);border-radius:999px;padding:4px;margin-bottom:10px}
 .tabs2 button{border:0;background:transparent;color:var(--muted);border-radius:999px;padding:9px 0;font-weight:800;cursor:pointer;font-family:inherit}
 .tabs2 button[aria-pressed="true"]{background:var(--card);color:var(--ink);box-shadow:0 1px 3px rgba(21,48,58,.12)}
+
+/* tier 2 */
+.chip.ss{display:inline-block;margin-left:8px;background:#fde6d6;color:#9a3f1d;border-radius:999px;padding:2px 8px;font-size:.66rem;font-weight:800;vertical-align:middle;text-transform:none;letter-spacing:0}
+.warmup{display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--bg2);border-radius:14px;padding:8px 12px;margin:0 0 10px}
+.warmup .eyebrow{margin:0}
+.wu-sets{display:flex;gap:10px;font-variant-numeric:tabular-nums;font-size:.9rem}
+.wu-sets b{font-weight:800}
+.plates{text-align:center;color:var(--muted);font-size:.82rem;font-weight:600;margin:-6px 0 12px}
+.linkbtn{background:none;border:0;padding:0;color:var(--teal);font:inherit;font-weight:700;cursor:pointer}
+.exnote{background:#fff7e6;color:#5a3a08;border-radius:12px;padding:8px 12px;font-size:.85rem;margin:6px 0 0;cursor:pointer}
+.exnote-edit{margin:6px 0 0}
+.exnote-edit textarea{width:100%;min-height:60px;border-radius:14px}
+.swaplist{display:grid;gap:8px;max-height:50vh;overflow:auto;margin:4px 0 8px}
+.swaprow{display:flex;align-items:center;gap:12px;border:0;background:var(--bg2);border-radius:16px;padding:10px 12px;text-align:left;cursor:pointer;font-family:inherit;color:var(--ink)}
+.swaprow img{width:44px;height:44px;object-fit:contain}
+.swaprow b{display:block;font-weight:800}.swaprow small{color:var(--muted);font-size:.78rem}
+.gyms{display:flex;flex-wrap:wrap;gap:8px}
+.gymchip{border:0;background:var(--bg2);color:var(--ink);border-radius:999px;padding:9px 14px;font-weight:800;cursor:pointer;font-family:inherit}
+.gymchip[aria-pressed="true"]{background:var(--teal);color:var(--teal-ink)}
+.gymchip.add{background:transparent;box-shadow:inset 0 0 0 1.5px var(--line);color:var(--muted)}
+
+/* account card art */
+.acctcard{position:relative;overflow:hidden;padding-top:118px}
+.acct-art{position:absolute;left:0;right:0;top:0;height:118px;pointer-events:none}
+.acct-art::before{content:"";position:absolute;left:50%;top:-70px;width:220px;height:220px;border-radius:50%;background:rgba(255,255,255,.35);transform:translateX(-50%)}
+.acct-art img{position:absolute;bottom:0;filter:drop-shadow(0 10px 14px rgba(21,48,58,.25))}
+.acct-art .a{left:28%;height:108px}
+.acct-art .b{left:52%;top:4px;height:78px}
+.acctcard .rowcard,.acctcard .pill,.acctcard .status{position:relative}

@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { PageHeader, BackButton, Card, Pill, RowCard, IconBubble, Logo, Status, useStatus } from "../components/ui.jsx";
+import { PageHeader, BackButton, Card, Pill, RowCard, IconBubble, Logo, Status, useStatus, IMG } from "../components/ui.jsx";
 import { DOW, today } from "../lib/dates.js";
 import SEED from "../seed.json";
 
@@ -12,7 +12,8 @@ export function AccountPage({ data, auth, onBack, onManage, go, onReplayOnboardi
   return (
     <section id="settings">
       <PageHeader left={<BackButton onClick={onBack}/>} title="Account" sub="Sync, data and app details"/>
-      <Card tone="aqua" style={{display:"grid", gap:12}}>
+      <Card tone="aqua" className="acctcard" style={{display:"grid", gap:12}}>
+        <div className="acct-art"><img className="b" src={IMG("login-run.png")} alt=""/><img className="a" src={IMG("login-leap.png")} alt=""/></div>
         <RowCard icon={<IconBubble name="user"/>} title={g ? (u.displayName || u.email || "Signed in") : "Device only"} sub={g ? `${u.email || "Google account"} · progress follows you everywhere.` : "Saved on this device. Sign in to keep it everywhere you train."}/>
         {!g && <Pill big onClick={auth.google}>Continue with Google</Pill>}
         {g && <Pill big ghost onClick={auth.logout}>Sign out</Pill>}

@@ -89,4 +89,4 @@ export function strengthSummary(sessions, names){
     return {k, name:names[k] || k, first:f, last:l, delta: same ? 0 : score(k, l) - score(k, f), pct: same ? 0 : Math.round((score(k, l) - score(k, f)) / score(k, f) * 100)}; });
 }
 
-export const REST = { compound:150, iso:90, last:120 };
+export const REST = { compound:150, iso:90, last:120, superset:30 };
