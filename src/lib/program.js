@@ -265,8 +265,12 @@ export const planFromStore = pl => (pl || []).map(e => Array.isArray(e) ? e : [e
 export function alternatives(key, gear, dayKeys){
   const e = LIB_BY_KEY[key]; if (!e) return [];
   const have = new Set(gear.equipment || []); if (gear.bar) have.add("bar"); if (gear.bench && gear.bench !== "none") have.add("bench"); if (gear.bench === "incline") have.add("incline");
-  const ok = x => x.needs.every(n => have.has(n)) && !x.unless.some(n => have.has(n)) && (x.bw || (x.equip === "db" ? (have.has("dumbbells") && gear.dumbbells.length > 0) : x.equip === "kb" ? (gear.kettlebells||[]).length > 0 : true));
-  return LIB.filter(x => x.key !== key && x.group === e.group && ok(x) && !dayKeys.includes(x.key)).sort((a, b) => a.pri - b.pri);
+  if ((gear.dumbbells || []).length) have.add("dumbbells");
+  const ok = x => x.needs.every(n => have.has(n)) && (x.bw || (x.equip === "db" ? gear.dumbbells.length > 0 : x.equip === "kb" ? (gear.kettlebells||[]).length > 0 : true));
+  const muscle = MUSCLE[e.group];
+  const same = LIB.filter(x => x.key !== key && ok(x) && !dayKeys.includes(x.key) && x.group === e.group);
+  const near = LIB.filter(x => x.key !== key && ok(x) && !dayKeys.includes(x.key) && x.group !== e.group && MUSCLE[x.group] === muscle && x.kind === e.kind);
+  return [...same.sort((a, b) => a.pri - b.pri), ...near.sort((a, b) => a.pri - b.pri)];
 }
 export function rowFor(x, gear, prog){
   const rep = {size:{compound:"8–12", iso:"12–15"}, strength:{compound:"5–8", iso:"8–12"}, endurance:{compound:"12–15", iso:"15–20"}}[prog.goal || "size"];

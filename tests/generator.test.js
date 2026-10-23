@@ -78,5 +78,10 @@ test("supersets pair the last two isolation lifts; swaps stay in the muscle grou
   assert.ok(p.every(d => d.ex.filter(e => e[7] === "A").length === 2));
   const off = buildProgram({gear:g50, prog:{...PROGRAM_DEFAULTS, supersets:false}, trainingDays:[1,2,4,5]});
   assert.ok(off.every(d => d.ex.every(e => !e[7])));
-  assert.ok(alternatives("row", g50, ["row"]).every(x => x.group === "back"));
+  const alts = alternatives("row", g50, ["row"]);
+  assert.ok(alts.length > 0);
+  assert.ok(alts.every(x => ["back", "lats", "traps"].includes(x.group)));
+  assert.ok(alts.every(x => x.kind === "compound" || x.group === "back"));
+  // every lift in a default program has at least one swap
+  for (const d of p) for (const e of d.ex) assert.ok(alternatives(e[0], g50, d.ex.map(x => x[0])).length > 0, e[0]);
 });

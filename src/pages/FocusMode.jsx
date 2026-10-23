@@ -2,10 +2,10 @@ import React, { useState, useEffect, useRef } from "react";
 import { PageHeader, BackButton, IconButton, Pill, BigInput, IMG, useStatus, useBeep, Icon } from "../components/ui.jsx";
 import { useRestTimer } from "../hooks/useRestTimer.js";
 import { exImg, TIMED, LIB_BY_KEY } from "../lib/program.js";
-import { warmups, platesPerSide, plateText } from "../lib/warmup.js";
+import { platesPerSide, plateText } from "../lib/warmup.js";
 import { ConfirmSheet } from "../components/ui.jsx";
 
-const Segments = ({ wo }) => <div className="seg">{wo.sequence.map(({ei, si}) => <i key={`${ei}-${si}`} className={`${wo.savedSet(wo.day.ex[ei][0], si) ? "done" : ""} ${ei === wo.ptr.ei && si === wo.ptr.si ? "cur" : ""}`}/>)}</div>;
+const Segments = ({ wo }) => <div className="seg">{wo.sequence.map(p => <i key={`${p.ei}-${p.si}-${p.wu ?? "s"}`} className={`${p.wu !== undefined ? "wu" : ""} ${!wo.isOpen(p) ? "done" : ""} ${p.ei === wo.ptr.ei && p.si === wo.ptr.si && (p.wu ?? -1) === (wo.ptr.wu ?? -1) ? "cur" : ""}`}/>)}</div>;
 
 const RestCard = ({ timer, nextText, nextGuide, nextImg, nextTarget, nextPlates, onNext }) => (
   <div className={`fcard frest ${timer.done ? "go" : ""}`}>
@@ -33,7 +33,7 @@ export function FocusMode({ data, wo, onBack, onHome }){
   const ex = wo.day.ex[wo.ptr.ei]; const [key, name, n, reps, , q, g, pair] = ex || []; const bw = ex && wo.isBW(key); const sg = ex && wo.suggestions[key]; const sv = ex && wo.savedSet(key, wo.ptr.si);
   const equipOf = k => (LIB_BY_KEY[k] || {}).equip;
   const plateLine = (k, wv) => { const eq = equipOf(k); if (eq !== "bb" && eq !== "ez") return null; const bar = eq === "ez" ? data.gear.ezbar.bar : data.gear.barbell.bar; const per = platesPerSide(+wv || 0, bar, data.gear.barbell.plates); return per === null ? `Can't load ${wv} lb exactly with your plates` : `Per side: ${plateText(per)}`; };
-  const wu = ex && wo.ptr.si === 0 && !sv ? warmups(key, sg.w, data.gear) : [];
+  const isWu = wo.ptr.wu !== undefined; const wuTotal = isWu ? wo.sequence.filter(x => x.ei === wo.ptr.ei && x.wu !== undefined).length : 0;
   const [noteOpen, setNoteOpen] = useState(false); const [noteText, setNoteText] = useState("");
   const [swapOpen, setSwapOpen] = useState(false); const [swapping, setSwapping] = useState(false);
   useEffect(() => { setNoteText(data.notes[key] || ""); setNoteOpen(false); setSwapOpen(false); }, [key]); // eslint-disable-line
@@ -46,9 +46,11 @@ export function FocusMode({ data, wo, onBack, onHome }){
     if (hit) { setPr(hit); try { if (navigator.vibrate) navigator.vibrate([60, 40, 60, 40, 120]); } catch (e) {} }
     const nxt = wo.nextOpen(wo.ptr);
     if (!nxt) { timer.stop(); setPhase("finish"); return; }
-    const nex = wo.day.ex[nxt.ei]; const ss = ex[7] && ex[7] === nex[7] && nxt.ei !== wo.ptr.ei; setNextText(`${ss ? "Superset → " : "Next: "}${nex[1]} · set ${nxt.si + 1} of ${nex[2]}`); const nsg = wo.suggestions[nex[0]]; const nsv = wo.savedSet(nex[0], nxt.si); const nbw = wo.isBW(nex[0]);
-    const nw = nsv ? nsv.w : nsg.w; const pl = plateLine(nex[0], nw);
-    setNextMeta({guide: nex[6], img: exImg(nex[0]), plates: pl, target: {w: nbw ? "BW" : `${nw} lb`, r: nsv ? nsv.r : (nsg.reps[nxt.si] ?? "max"), label: TIMED.has(nex[0]) ? "Seconds" : "Reps"}}); setNextPtr(nxt); nextRef.current = nxt; prime(); timer.start(wo.restFor(key, wo.isLastInSeq(wo.ptr) || (wo.nextInSeq(wo.ptr).ei !== wo.ptr.ei && !ss), wo.ptr, nxt)); setPhase("rest");
+    const nex = wo.day.ex[nxt.ei]; const ss = ex[7] && ex[7] === nex[7] && nxt.ei !== wo.ptr.ei; const nsg = wo.suggestions[nex[0]]; const nsv = wo.savedSet(nex[0], nxt.si); const nbw = wo.isBW(nex[0]);
+    const isNextWu = nxt.wu !== undefined;
+    setNextText(isNextWu ? `Warm-up ${nxt.wu + 1}: ${nex[1]}` : `${ss ? "Superset → " : "Next: "}${nex[1]} · set ${nxt.si + 1} of ${nex[2]}`);
+    const nw = isNextWu ? nxt.w : (nsv ? nsv.w : nsg.w); const pl = plateLine(nex[0], nw);
+    setNextMeta({guide: nex[6], img: exImg(nex[0]), plates: pl, target: {w: nbw ? "BW" : `${nw} lb`, r: isNextWu ? nxt.r : (nsv ? nsv.r : (nsg.reps[nxt.si] ?? "max")), label: TIMED.has(nex[0]) ? "Seconds" : "Reps"}}); setNextPtr(nxt); nextRef.current = nxt; prime(); timer.start(wo.restFor(key, wo.isLastInSeq(wo.ptr) || (wo.nextInSeq(wo.ptr).ei !== wo.ptr.ei && !ss), wo.ptr, nxt)); setPhase("rest");
   };
   const advance = () => { timer.stop(); nextRef.current = null; if (nextPtr) wo.setPtr(nextPtr); setPhase("set"); };
   const prev = () => { timer.stop(); nextRef.current = null; wo.setPtr(wo.prevInSeq(wo.ptr)); setPhase("set"); };
@@ -56,9 +58,22 @@ export function FocusMode({ data, wo, onBack, onHome }){
   return (
     <section id="focus">
       <div className="wrap">
-        <PageHeader left={<BackButton onClick={onBack} label="Back to workout"/>} title={wo.isDeload ? `${wo.day.name} · deload` : wo.day.name} sub={`Set ${wo.seqIndex(wo.ptr) + 1} of ${wo.total}${ex ? " · " + name : ""}`} right={<IconButton name="close" label="Home" onClick={onHome}/>}/>
+        <PageHeader left={<BackButton onClick={onBack} label="Back to workout"/>} title={wo.isDeload ? `${wo.day.name} · deload` : wo.day.name} sub={isWu ? `Warm-up · ${name}` : `Set ${wo.workingIndex(wo.ptr)} of ${wo.total}${ex ? " · " + name : ""}`} right={<IconButton name="close" label="Home" onClick={onHome}/>}/>
         <Segments wo={wo}/>
-        {phase === "set" && ex && (
+        {phase === "set" && ex && isWu && (
+          <div className="fcard wucard">
+            <div className="ftop">
+              <img className="fimg" src={exImg(key)} alt=""/>
+              <div className="eyebrow">Warm-up {wo.ptr.wu + 1} of {wuTotal} · before {name}</div>
+              <h2>{name}</h2>
+              <div className="why">Light and smooth. Groove the movement; don't chase reps.{plateLine(key, wo.ptr.w) ? ` ${plateLine(key, wo.ptr.w)}.` : ""}</div>
+            </div>
+            <div className="wubig"><span><small>Weight</small><b>{wo.ptr.w}</b></span><span className="x">×</span><span><small>Reps</small><b>{wo.ptr.r}</b></span></div>
+            <button className="done-btn" onClick={() => { wo.markWu(wo.ptr); const nxt = wo.nextOpen(wo.ptr); if (!nxt) { setPhase("finish"); return; } const nex = wo.day.ex[nxt.ei]; const nw = nxt.wu !== undefined ? nxt.w : (wo.savedSet(nex[0], nxt.si) ? wo.savedSet(nex[0], nxt.si).w : wo.suggestions[nex[0]].w); const nr = nxt.wu !== undefined ? nxt.r : (wo.savedSet(nex[0], nxt.si) ? wo.savedSet(nex[0], nxt.si).r : (wo.suggestions[nex[0]].reps[nxt.si] ?? "max"));
+              setNextText(nxt.wu !== undefined ? `Warm-up ${nxt.wu + 1}: ${nex[1]}` : `Next: ${nex[1]} · set ${nxt.si + 1} of ${nex[2]}`); setNextMeta({guide: nex[6], img: exImg(nex[0]), plates: plateLine(nex[0], nw), target: {w: wo.isBW(nex[0]) ? "BW" : `${nw} lb`, r: nr, label:"Reps"}}); setNextPtr(nxt); nextRef.current = nxt; prime(); timer.start(45); setPhase("rest"); }}>Done</button>
+          </div>
+        )}
+        {phase === "set" && ex && !isWu && (
           <div className="fcard">
             <div className="ftop">
               <img className="fimg" src={exImg(key)} alt=""/>
@@ -69,7 +84,6 @@ export function FocusMode({ data, wo, onBack, onHome }){
               {noteOpen && <div className="exnote-edit"><textarea value={noteText} placeholder="Seat height, grip, cues… shows every time this lift comes up" onChange={e => setNoteText(e.target.value)}/><div className="rowi" style={{margin:"6px 0 0", gap:8}}><Pill className="mini" onClick={async () => { try { await data.api.saveNote(key, noteText.trim()); } catch (e) {} setNoteOpen(false); }}>Save note</Pill><Pill ghost className="mini" onClick={() => setNoteOpen(false)}>Cancel</Pill></div></div>}
               <div className="why">{(sv ? `Logged ${bw ? sv.r + " reps" : sv.w + " × " + sv.r}. ` : "") + sg.why}</div>
             </div>
-            {wu.length > 0 && <div className="warmup"><span className="eyebrow">Warm up first</span><div className="wu-sets">{wu.map((s, i) => <span key={i}><b>{s.w}</b> × {s.r}</span>)}</div></div>}
             <div className="bigs">
               <BigInput id="f-w" label="Weight lb" value={bw ? "" : w} onChange={setW} step={5} disabled={bw} placeholder={bw ? "BW" : ""}/>
               <BigInput id="f-r" label={TIMED.has(key) ? "Seconds" : "Reps"} value={r} onChange={setR} step={1}/>

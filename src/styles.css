@@ -557,3 +557,12 @@ input,textarea,select{font-size:max(16px,1em)}
 .acct-art .a{left:calc(50% - 86px);height:140px}
 .acct-art .b{left:calc(50% + 6px);height:134px}
 .acctcard .rowcard,.acctcard .pill,.acctcard .status{position:relative}
+
+/* warm-up card */
+.wucard{background:var(--aqua2)}
+.wubig{display:flex;justify-content:center;align-items:center;gap:18px;margin:4px 0 16px}
+.wubig span{display:flex;flex-direction:column;align-items:center;line-height:1}
+.wubig small{font-size:.66rem;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;font-weight:700;margin-bottom:4px}
+.wubig b{font-size:2.6rem;font-weight:800;font-variant-numeric:tabular-nums}
+.wubig .x{font-size:1.4rem;color:var(--muted);padding-top:14px}
+.seg i.wu{flex:0 0 10px;opacity:.6}
