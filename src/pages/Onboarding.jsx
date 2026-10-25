@@ -59,7 +59,7 @@ export function Onboarding({ data, onDone, onCancel, replay }){
         </div>}
 
         {step === "gear" && <div className="ob-body">
-          <div className="eyebrow">Step 5 of 6</div><h1 className="ob-h">What do you have?</h1><p className="muted">Turn on what you own; the plan only uses that. You can change it any time.</p>
+          <div className="eyebrow">Step 5 of 6</div><h1 className="ob-h">What do you have?</h1><p className="muted">Turn on what you own; the plan only uses that. Nothing yet? Leave it all off and you get a bodyweight plan. You can change it any time.</p>
           <div className="card" style={{display:"grid", gap:14}}>{EQUIPMENT.map(e => <React.Fragment key={e.key}>
             <RowCard icon={<IconBubble name={e.key === "bar" ? "bar" : e.key === "bench" ? "bench" : e.key === "cable" ? "pull" : "gear"}/>} title={e.name} sub={e.sub} right={<Toggle on={equip.has(e.key)} onChange={() => toggleEquip(e.key)} label={e.name}/>}/>
             {e.options && equip.has(e.key) && <Options kind={e.options} g={g} setG={setG} equip={equip}/>}

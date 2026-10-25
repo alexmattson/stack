@@ -79,7 +79,7 @@ export function FocusMode({ data, wo, onBack, onHome }){
               <img className="fimg" src={exImg(key)} alt=""/>
               <div className="eyebrow">Lift {wo.ptr.ei + 1} of {wo.day.ex.length} · set {wo.ptr.si + 1} of {n} · target {reps}{pair && <span className="chip ss">Superset · with {partnerName}</span>}</div>
               <h2>{name}</h2>
-              <div className="muted" style={{fontSize:".85rem"}}><a href={g} target="_blank" rel="noopener">guide</a> · <button className="linkbtn" onClick={() => setSwapOpen(true)}>swap</button> · <button className="linkbtn" onClick={() => setNoteOpen(o => !o)}>{data.notes[key] ? "note" : "add note"}</button></div>
+              <div className="muted" style={{fontSize:".85rem"}}>{g && <><a href={g} target="_blank" rel="noopener">guide</a> · </>}<button className="linkbtn" onClick={() => setSwapOpen(true)}>swap</button> · <button className="linkbtn" onClick={() => setNoteOpen(o => !o)}>{data.notes[key] ? "note" : "add note"}</button></div>
               {data.notes[key] && !noteOpen && <div className="exnote" onClick={() => setNoteOpen(true)}>{data.notes[key]}</div>}
               {noteOpen && <div className="exnote-edit"><textarea value={noteText} placeholder="Seat height, grip, cues… shows every time this lift comes up" onChange={e => setNoteText(e.target.value)}/><div className="rowi" style={{margin:"6px 0 0", gap:8}}><Pill className="mini" onClick={async () => { try { await data.api.saveNote(key, noteText.trim()); } catch (e) {} setNoteOpen(false); }}>Save note</Pill><Pill ghost className="mini" onClick={() => setNoteOpen(false)}>Cancel</Pill></div></div>}
               <div className="why">{(sv ? `Logged ${bw ? sv.r + " reps" : sv.w + " × " + sv.r}. ` : "") + sg.why}</div>

@@ -137,6 +137,7 @@ export function EquipmentPage({ data, onBack }){
       </Card>
 
       <h2>What you have</h2>
+      <p className="muted" style={{margin:"-6px 0 10px", fontSize:".88rem"}}>Nothing at all is fine: with everything off you get a bodyweight plan of push-ups, rows, squats and holds.</p>
       <Card style={{display:"grid", gap:14}}>{EQUIPMENT.map(e => (
         <React.Fragment key={e.key}>
           <RowCard icon={<IconBubble name={e.key === "bar" ? "bar" : e.key === "bench" ? "bench" : e.key === "cable" ? "pull" : "gear"}/>} title={e.name} sub={e.sub} right={<Toggle on={equip.has(e.key)} onChange={() => toggleEquip(e.key)} label={e.name}/>}/>

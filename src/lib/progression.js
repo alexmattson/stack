@@ -26,17 +26,18 @@ export function suggest(ex, sessions, gear, ctx = {}){
   const nextDB = lad.next, prevDB = lad.prev, maxDB = lad.max;
 
   if (BODYWEIGHT_EX.has(key)) {
-    const ab = CORE_BW.has(key), timed = TIMED.has(key);
-    if (!hist.length) return ab
-      ? {w:0, reps:fill(range.lo), why: timed ? `Hold ${range.lo} seconds per side. Add 5 seconds each week.` : `Start at ${range.lo} slow reps. No swinging.`}
+    const ab = CORE_BW.has(key), timed = TIMED.has(key), ranged = !!range; const lib = LIB_BY_KEY[key] || {};
+    const up = lib.up || (timed ? "Add a dumbbell on the hip or raise the top leg." : ab ? (key === "knee_raise" ? "Move to hanging leg raises, or hold a dumbbell between your feet." : "Slow the lowering to 3 seconds or hold a light dumbbell between your feet.") : "Hold a 10 lb dumbbell between your feet and rebuild.");
+    if (!hist.length) return ranged
+      ? {w:0, reps:fill(range.lo), why: timed ? `Hold ${range.lo} seconds${/per side/i.test(lib.name || "") ? " per side" : ""}. Add 5 seconds each week.` : `Start at ${range.lo} slow, full reps. No swinging.`}
       : {w:0, reps:fill(null), why:"Do as many clean reps as you can each set. Partial reps don't count."};
     const last = hist[0].sets.map(s => s.r);
-    if (ab) {
-      if (last.every(r => r >= range.hi)) return {w:0, reps:fill(range.hi), why: timed ? "Holding the top of the range. Add a dumbbell on the hip or raise the top leg." : key === "knee_raise" ? "Top of the range on all sets. Move to hanging leg raises, or hold a dumbbell between your feet." : "Top of the range on all sets. Slow the lowering to 3 seconds or hold a light dumbbell between your feet."};
+    if (ranged) {
+      if (last.every(r => r >= range.hi)) return {w:0, reps:fill(range.hi), why:`Top of the range on every set. ${up}`};
       return {w:0, reps:last.map(r => Math.min(range.hi, r + (timed ? 5 : 1))), why:`Last time ${last.join(", ")}. Add ${timed ? "5 seconds" : "one rep"} per set.`};
     }
     const total = last.reduce((a, b) => a + b, 0);
-    if (total >= 40) return {w:0, reps:last.slice(), why:`${total} total reps last time. Add weight: hold a 10 lb dumbbell between your feet and rebuild.`};
+    if (total >= 40) return {w:0, reps:last.slice(), why:`${total} total reps last time. Make it harder: ${up}`};
     const reps = last.map((r, i) => i === 0 ? r + 1 : r);
     while (reps.length < n) reps.push(Math.max(1, last[last.length - 1] - 1));
     return {w:0, reps, why:`Last time ${last.join(", ")}. Add one rep to the first set and hold the rest.`};

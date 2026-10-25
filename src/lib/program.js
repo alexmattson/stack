@@ -7,7 +7,8 @@
 // bw (bodyweight), start (lb per hand for a 150 lb lifter with some experience), img, q (video search), g (guide), pri (lower = preferred)
 // equip: db (per-hand dumbbell weight, stepped through the dumbbells you own) · bb (total bar weight, 5 lb steps)
 // kb (kettlebell) · cable · band · bw (bodyweight). needs: equipment tags that must be present; unless: tags that make it redundant.
-const EX = r => Object.assign({needs:[], unless:[], bw:false, start:0, pri:5, timed:false, equip:"db"}, r);
+// reps: fixed rep/second range for bodyweight moves (otherwise "max", or the goal's range). up: how to make it harder once the range is owned.
+const EX = r => Object.assign({needs:[], unless:[], bw:false, start:0, pri:5, timed:false, equip:"db", reps:null, up:null, g:null}, r);
 export const LIB = [
   // push: chest
   EX({key:"flat_press",   name:"Flat DB press",           group:"chest", region:"push", kind:"compound", needs:["bench"],         start:35, img:"press",   q:"dumbbell bench press form", g:"https://musclewiki.com/exercise/dumbbell-bench-press", pri:1}),
@@ -167,7 +168,7 @@ export function buildProgram(opts){
   const expMult = {new:0.8, some:1, experienced:1.2}[prog.experience || "some"];
   const bwMult = Math.pow((prog.bodyweight || 150) / 150, 0.7);
   const startFor = e => { if (e.bw) return 0; const w = Math.max(5, Math.round(e.start * expMult * bwMult / 5) * 5); return ladder(e.equip, gear).nearest(w); };
-  const repsFor = e => e.bw && e.region !== "core" ? "max" : e.timed ? "20–45" : e.region === "core" && e.bw ? "10–15" : rep[e.kind];
+  const repsFor = e => e.reps ? e.reps : e.timed ? "20–45" : e.bw && e.region !== "core" ? "max" : e.region === "core" && e.bw ? "10–15" : rep[e.kind];
   const toRow = (e, sets) => [e.key, e.name, sets || setsFor(e), repsFor(e), startFor(e), e.q, e.g, null];
 
   const split = chooseSplit(days, focus);
@@ -276,6 +277,6 @@ export function rowFor(x, gear, prog){
   const rep = {size:{compound:"8–12", iso:"12–15"}, strength:{compound:"5–8", iso:"8–12"}, endurance:{compound:"12–15", iso:"15–20"}}[prog.goal || "size"];
   const expMult = {new:0.8, some:1, experienced:1.2}[prog.experience || "some"]; const bwMult = Math.pow((prog.bodyweight || 150) / 150, 0.7);
   const w = x.bw ? 0 : ladder(x.equip, gear).nearest(Math.max(5, Math.round(x.start * expMult * bwMult / 5) * 5));
-  const reps = x.bw && x.region !== "core" ? "max" : x.timed ? "20–45" : x.region === "core" && x.bw ? "10–15" : rep[x.kind];
+  const reps = x.reps ? x.reps : x.timed ? "20–45" : x.bw && x.region !== "core" ? "max" : x.region === "core" && x.bw ? "10–15" : rep[x.kind];
   return [x.key, x.name, x.kind === "compound" ? 4 : 3, reps, w, x.q, x.g, null];
 }
