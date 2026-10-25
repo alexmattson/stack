@@ -64,7 +64,7 @@ export function FocusMode({ data, wo, onBack, onHome }){
           <div className="fcard wucard">
             <div className="ftop">
               <img className="fimg" src={exImg(key)} alt=""/>
-              <div className="eyebrow">Warm-up {wo.ptr.wu + 1} of {wuTotal} · before {name}</div>
+              <div className="eyebrow">Warm-up {wo.ptr.wu + 1} of {wuTotal} · {name}</div>
               <h2>{name}</h2>
               <div className="why">Light and smooth. Groove the movement; don't chase reps.{plateLine(key, wo.ptr.w) ? ` ${plateLine(key, wo.ptr.w)}.` : ""}</div>
             </div>

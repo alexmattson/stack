@@ -32,13 +32,13 @@ export function useWorkout(data, date, dayIdx){
   // Warm-up steps done this visit (they aren't logged).
   const [doneWu, setDoneWu] = useState(() => new Set());
   const markWu = p => setDoneWu(s => new Set([...s, `${p.ei}-${p.wu}`]));
-  // The order everything is done in: warm-up steps before a compound's first set, then working sets.
+  // The order everything is done in: all warm-up steps first (for compounds whose first set isn't logged), then working sets.
   // Paired lifts (supersets) alternate set by set: A1, B1, A2, B2…
   const sequence = useMemo(() => { const seq = []; const done = new Set();
     const wuFor = ei => { const e = day.ex[ei]; if (savedSet(e[0], 0)) return []; return warmups(e[0], suggestions[e[0]].w, data.gear).map((s, k) => ({ei, si:0, wu:k, w:s.w, r:s.r})); };
+    day.ex.forEach((e, ei) => wuFor(ei).forEach(x => seq.push(x)));   // every warm-up first, in lift order
     day.ex.forEach((e, ei) => { if (done.has(ei)) return; const partner = e[7] ? day.ex.findIndex((x, j) => j > ei && x[7] === e[7]) : -1;
-      wuFor(ei).forEach(x => seq.push(x));
-      if (partner >= 0) { wuFor(partner).forEach(x => seq.push(x)); const n = Math.max(e[2], day.ex[partner][2]); for (let si = 0; si < n; si++) { if (si < e[2]) seq.push({ei, si}); if (si < day.ex[partner][2]) seq.push({ei:partner, si}); } done.add(ei); done.add(partner); }
+      if (partner >= 0) { const n = Math.max(e[2], day.ex[partner][2]); for (let si = 0; si < n; si++) { if (si < e[2]) seq.push({ei, si}); if (si < day.ex[partner][2]) seq.push({ei:partner, si}); } done.add(ei); done.add(partner); }
       else { for (let si = 0; si < e[2]; si++) seq.push({ei, si}); done.add(ei); } });
     return seq; }, [day, suggestions, data.gear, savedSet]);
   const same = (a, b) => a.ei === b.ei && a.si === b.si && (a.wu ?? -1) === (b.wu ?? -1);
