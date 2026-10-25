@@ -78,7 +78,7 @@ const ExerciseCard = ({ ex, ei, wo, draft, setDraft, onSave, onFocus, status, no
     <div className="exl">
       <div className="hd"><IconBubble name={ei < 3 ? "push" : "pull"}/><div style={{minWidth:0}}><b>{name}{pair && <span className="chip ss">Superset</span>}</b><small>{n} × {reps}{bw ? "" : ` · ${sg.w} lb`}{wu.length ? ` · warm up ${wu.map(s => s.w + "×" + s.r).join(", ")}` : ""}</small></div><span className="chip">{target.length > 18 ? (sg.w ? sg.w + " lb" : "max") : target}</span></div>
       {note && <div className="exnote">{note}</div>}
-      <div className="links">{g && <><a href={g} target="_blank" rel="noopener">guide</a> · </>}<a href="#" onClick={e => { e.preventDefault(); onFocus(ei); }}>focus</a> · <span>{sg.why}</span></div>
+      {g && <div className="links"><a href={g} target="_blank" rel="noopener">guide</a></div>}
       <div className="setrows">{Array.from({length:n}, (_, i) => <SetRow key={i} ex={ex} i={i} wo={wo} draft={draft} setDraft={setDraft} onSave={onSave} current={wo.ptr.ei === ei && wo.ptr.si === i}/>)}</div>
       <div className={`exstatus ${status && status.key === key ? (status.ok ? "ok" : "bad") : ""}`}>{status && status.key === key ? status.text : ""}</div>
     </div>
