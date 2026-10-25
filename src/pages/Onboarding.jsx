@@ -19,7 +19,7 @@ export function Onboarding({ data, onDone, onCancel, replay }){
   const equip = new Set(g.equipment);
   const toggleEquip = k => { const n = new Set(equip); n.has(k) ? n.delete(k) : n.add(k); const next = {...g, equipment:[...n], bar:n.has("bar"), bench:n.has("bench") ? (g.bench === "flat" ? "flat" : "incline") : "none"}; if (k === "dumbbells" && n.has(k) && !g.dumbbells.length) next.dumbbells = GEAR_DEFAULTS.dumbbells; setG(next); };
   const preview = useMemo(() => step === "done" ? buildProgram({gear:g, prog:{...p, bodyweight:+p.bodyweight || 150}, trainingDays:days}) : [], [step, g, p, days]);
-  const canNext = step === "focus" ? p.focus.length > 0 : step === "days" ? days.length > 0 : step === "gear" ? ((equip.has("dumbbells") && g.dumbbells.length) || equip.has("barbell") || (equip.has("kettlebell") && g.kettlebells.length) || equip.has("cable")) : true;
+  const canNext = step === "focus" ? p.focus.length > 0 : step === "days" ? days.length > 0 : step === "gear" ? (!equip.has("dumbbells") || g.dumbbells.length > 0) && (!equip.has("kettlebell") || g.kettlebells.length > 0) : true;
   const next = () => { setErr(""); setI(x => Math.min(STEPS.length - 1, x + 1)); window.scrollTo(0, 0); };
   const back = () => { setErr(""); setI(x => Math.max(0, x - 1)); window.scrollTo(0, 0); };
   const finish = async () => { setBusy(true); try { await data.api.completeOnboarding(g, {...p, bodyweight:+p.bodyweight || 150}, days); onDone(); } catch (e) { setErr("Couldn't save: " + (e.message || e)); setBusy(false); } };

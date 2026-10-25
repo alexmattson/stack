@@ -117,8 +117,6 @@ export function EquipmentPage({ data, onBack }){
     if (k === "dumbbells" && n.has(k) && !g.dumbbells.length) next.dumbbells = ALL_W.filter(w => w <= 50);
     setG(next); };
   const { state, err, save } = useSave(data, () => [g, data.prog], () => {
-    const weighted = (equip.has("dumbbells") && g.dumbbells.length) || equip.has("barbell") || (equip.has("kettlebell") && g.kettlebells.length) || equip.has("cable");
-    if (!weighted) return "Turn on at least one weighted item: dumbbells, barbell, kettlebells or a cable machine.";
     if (equip.has("dumbbells") && !g.dumbbells.length) return "Pick the dumbbell weights you have.";
     if (equip.has("kettlebell") && !g.kettlebells.length) return "Pick the kettlebell weights you have.";
     if (equip.has("rack") && !equip.has("barbell")) return "A squat rack needs a barbell; turn on Barbell & plates too.";
