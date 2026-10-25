@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { buildProgram, PROGRAM_DEFAULTS, GEAR_DEFAULTS, LIB } from "../src/lib/program.js";
+import { buildProgram, PROGRAM_DEFAULTS, GEAR_DEFAULTS, LIB, normalizeGear } from "../src/lib/program.js";
 import { suggest } from "../src/lib/progression.js";
 
 const g50 = GEAR_DEFAULTS;
@@ -15,7 +15,15 @@ test("no bar removes chin-ups; barbell+rack adds barbell bench", () => {
   const b = buildProgram({gear:{...g50, equipment:["dumbbells","bench","bar","barbell","rack"]}, prog:PROGRAM_DEFAULTS, trainingDays:[1,2,4,5]});
   assert.ok(b[0].ex.some(e => e[0] === "bb_bench"));
 });
-test("every exercise has media and a guide", () => { for (const e of LIB) assert.ok(e.img && e.q && e.g, e.key); });
+test("every exercise has media; guides are MuscleWiki links when present", () => { for (const e of LIB) { assert.ok(e.img && e.q, e.key); if (e.g) assert.match(e.g, /^https:\/\/musclewiki\.com\/exercise\//, e.key); } });
+test("no equipment at all still builds a full bodyweight program with swaps", () => {
+  const none = normalizeGear({equipment:[], dumbbells:[], bench:"none", bar:false});
+  for (const focus of [["upper","core"], ["upper","lower","core"], ["lower"], ["core"]]) {
+    const p = buildProgram({gear:none, prog:{...PROGRAM_DEFAULTS, focus}, trainingDays:[1,2,4,5]});
+    assert.ok(p.every(d => d.ex.length >= 4), focus.join("+"));
+    for (const d of p) for (const e of d.ex) { assert.equal(e[4], 0, e[0]); assert.ok(alternatives(e[0], none, d.ex.map(x => x[0])).every(x => x.bw), e[0]); }
+  }
+});
 test("progression: top of range steps to next owned dumbbell; barbell steps 5 lb", () => {
   const s1 = suggest(["flat_press","Flat",4,"8–12",35,"",""], [{date:"2026-10-20", sets:{flat_press:[{w:35,r:12},{w:35,r:12},{w:35,r:12},{w:35,r:12}]}}], g50);
   assert.equal(s1.w, 40);

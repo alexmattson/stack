@@ -9,12 +9,13 @@
 // kb (kettlebell) · cable · band · bw (bodyweight). needs: equipment tags that must be present; unless: tags that make it redundant.
 // reps: fixed rep/second range for bodyweight moves (otherwise "max", or the goal's range). up: how to make it harder once the range is owned.
 const EX = r => Object.assign({needs:[], unless:[], bw:false, start:0, pri:5, timed:false, equip:"db", reps:null, up:null, g:null}, r);
+const BW = r => EX(Object.assign({bw:true, equip:"bw", q:r.name.toLowerCase().replace(/\s*\(.*\)/, "") + " form"}, r));
 export const LIB = [
   // push: chest
   EX({key:"flat_press",   name:"Flat DB press",           group:"chest", region:"push", kind:"compound", needs:["bench"],         start:35, img:"press",   q:"dumbbell bench press form", g:"https://musclewiki.com/exercise/dumbbell-bench-press", pri:1}),
   EX({key:"floor_press", unless:["bench"],  name:"DB floor press",          group:"chest", region:"push", kind:"compound",                          start:35, img:"press",   q:"dumbbell floor press form", g:"https://musclewiki.com/exercise/dumbbell-floor-press", pri:3}),
   EX({key:"incline_press",name:"Incline DB press",        group:"chest_upper", region:"push", kind:"compound", needs:["incline"], start:30, img:"incline", q:"incline dumbbell press form", g:"https://musclewiki.com/exercise/dumbbell-incline-bench-press", pri:1}),
-  EX({key:"pushup", unless:["bench"],       name:"Push-ups",                group:"chest", region:"push", kind:"compound", bw:true,                 img:"press",   q:"push up form", g:"https://musclewiki.com/exercise/push-up", pri:4}),
+  EX({key:"pushup",       name:"Push-ups",                group:"chest", region:"push", kind:"compound", bw:true, equip:"bw",      img:"press",   q:"push up form", g:"https://musclewiki.com/exercise/push-up", pri:4, up:"Elevate your feet, or move to decline push-ups."}),
   EX({key:"fly",          name:"DB flys",                 group:"chest", region:"push", kind:"iso", needs:["bench"],              start:15, img:"fly",     q:"dumbbell chest fly form", g:"https://musclewiki.com/exercise/dumbbell-chest-fly", pri:2}),
   EX({key:"floor_fly", unless:["bench"],    name:"Floor flys",              group:"chest", region:"push", kind:"iso",                               start:15, img:"fly",     q:"dumbbell floor fly form", g:"https://musclewiki.com/exercise/dumbbell-floor-fly", pri:4}),
   EX({key:"cg_press",     name:"Close-grip DB press",     group:"triceps", region:"push", kind:"compound", needs:["bench"],       start:25, img:"press",   q:"close grip dumbbell press", g:"https://musclewiki.com/exercise/dumbbell-squeeze-press", pri:3}),
@@ -55,7 +56,7 @@ export const LIB = [
   EX({key:"rdl",          name:"Romanian deadlift",       group:"hams", region:"legs", kind:"compound",                           start:40, img:"hinge",   q:"dumbbell romanian deadlift form", g:"https://musclewiki.com/exercise/dumbbell-romanian-deadlift", pri:1}),
   EX({key:"sl_rdl",       name:"Single-leg RDL",          group:"hams", region:"legs", kind:"compound",                           start:25, img:"hinge",   q:"single leg dumbbell romanian deadlift form", g:"https://musclewiki.com/exercise/dumbbell-single-leg-single-arm-deadlift", pri:2}),
   EX({key:"hip_thrust",   name:"DB hip thrust",           group:"glutes", region:"legs", kind:"compound", needs:["bench"],        start:45, img:"hinge",   q:"dumbbell hip thrust form", g:"https://musclewiki.com/exercise/dumbbell-hip-thrust", pri:1}),
-  EX({key:"glute_bridge", unless:["bench"], name:"Glute bridge",            group:"glutes", region:"legs", kind:"compound",                         start:40, img:"hinge",   q:"dumbbell glute bridge form", g:"https://musclewiki.com/exercise/dumbbell-glute-bridge", pri:2}),
+  EX({key:"glute_bridge", unless:["bench"], name:"DB glute bridge",         group:"glutes", region:"legs", kind:"compound",                         start:40, img:"hinge",   q:"dumbbell glute bridge form", g:"https://musclewiki.com/exercise/dumbbell-glute-bridge", pri:2}),
   EX({key:"calf_raise",   name:"Standing calf raises",    group:"calves", region:"legs", kind:"iso",                              start:40, img:"squat",   q:"dumbbell calf raise form", g:"https://musclewiki.com/exercise/dumbbell-calf-raise", pri:1}),
   EX({key:"ham_curl",     name:"Lying DB hamstring curl", group:"hams", region:"legs", kind:"iso",                                start:15, img:"hinge",   q:"lying dumbbell hamstring curl", g:"https://musclewiki.com/exercise/dumbbell-leg-curl", pri:3}),
   // core
@@ -100,6 +101,55 @@ export const LIB = [
   EX({key:"band_pushdown", name:"Band triceps pushdown",  group:"triceps", region:"push", kind:"iso", needs:["bands"], unless:["cable"], equip:"band", start:0, bw:true, img:"tri", q:"band triceps pushdown form", g:"https://musclewiki.com/exercise/band-rapunzel-pushdown", pri:3}),
   // ab wheel
   EX({key:"ab_rollout",   name:"Ab wheel rollouts",       group:"abs", region:"core", kind:"iso", needs:["abwheel"], bw:true, equip:"bw", img:"abs", q:"ab wheel rollout form", g:"https://musclewiki.com/exercise/barbell-roll-outs", pri:0}),
+  // ---------- bodyweight & isometrics (no equipment) ----------
+  // Priorities sit above the dumbbell versions so these fill in only where nothing weighted fits.
+  // push
+  BW({key:"decline_pushup", name:"Decline push-ups (feet up)",     group:"chest_upper", region:"push", kind:"compound", img:"incline", g:"https://musclewiki.com/exercise/decline-push-up", pri:6, up:"Raise your feet higher, or pause 2 seconds at the bottom."}),
+  BW({key:"wide_pushup",    name:"Wide push-ups",                  group:"chest", region:"push", kind:"compound", img:"press", pri:7, up:"Elevate your feet or slow the lowering to 3 seconds."}),
+  BW({key:"pushup_hold",    name:"Push-up bottom hold (seconds)",  group:"chest", region:"push", kind:"iso", timed:true, reps:"20–45", img:"press", pri:8, up:"Hold an inch lower, or elevate your feet."}),
+  BW({key:"pike_pushup",    name:"Pike push-ups",                  group:"shoulders", region:"push", kind:"compound", img:"shoulder", g:"https://musclewiki.com/exercise/elevated-pike-press", pri:6, up:"Put your feet on a chair to load the shoulders more."}),
+  BW({key:"handstand_hold", name:"Wall handstand hold (seconds)",  group:"shoulders", region:"push", kind:"iso", timed:true, reps:"20–45", img:"shoulder", pri:8, up:"Walk your hands a little farther from the wall."}),
+  BW({key:"lateral_hold",   name:"Wall lateral raise hold (sec per side)", group:"side_delts", region:"push", kind:"iso", timed:true, reps:"20–45", img:"raise", pri:8, up:"Press harder into the wall, or hold a water bottle."}),
+  BW({key:"diamond_pushup", name:"Diamond push-ups",               group:"triceps", region:"push", kind:"compound", img:"tri", g:"https://musclewiki.com/exercise/diamond-push-ups", pri:6, up:"Elevate your feet."}),
+  BW({key:"bench_dip",      name:"Chair dips",                     group:"triceps", region:"push", kind:"compound", img:"tri", g:"https://musclewiki.com/exercise/bench-dips", pri:6, up:"Put your feet up on a second chair."}),
+  BW({key:"plank_updown",   name:"Plank up-downs (per side)",      group:"triceps", region:"push", kind:"iso", reps:"8–15", img:"press", g:"https://musclewiki.com/exercise/bodyweight-plank-up-down", pri:8, up:"Slow each rep down and keep the hips still."}),
+  // pull
+  BW({key:"inverted_row",   name:"Inverted row (under a table)",   group:"back", region:"pull", kind:"compound", img:"row", g:"https://musclewiki.com/exercise/inverted-row", pri:5, up:"Lower the surface, or put your feet up on a chair."}),
+  BW({key:"door_row",       name:"Doorway row (towel or door edge)", group:"lats", region:"pull", kind:"compound", img:"row", g:"https://musclewiki.com/exercise/bodyweight-standing-inverted-row", pri:6, up:"Walk your feet closer to the door so you lean back further."}),
+  BW({key:"superman",       name:"Supermans",                      group:"back", region:"pull", kind:"iso", reps:"10–15", img:"hinge", g:"https://musclewiki.com/exercise/supermans", pri:6, up:"Pause 3 seconds at the top of every rep."}),
+  BW({key:"superman_hold",  name:"Superman hold (seconds)",        group:"back", region:"pull", kind:"iso", timed:true, reps:"20–45", img:"hinge", pri:7, up:"Reach your arms further forward."}),
+  BW({key:"bird_dog",       name:"Bird dog (per side)",            group:"back", region:"pull", kind:"iso", reps:"10–15", img:"hinge", g:"https://musclewiki.com/exercise/bird-dog", pri:8, up:"Hold each rep for 3 seconds."}),
+  BW({key:"prone_y",        name:"Prone Y raises",                 group:"rear_delts", region:"pull", kind:"iso", reps:"12–20", img:"raise", g:"https://musclewiki.com/exercise/i-into-w-prone", pri:6, up:"Hold the top for 2 seconds, or hold water bottles."}),
+  BW({key:"snow_angel",     name:"Reverse snow angels",            group:"rear_delts", region:"pull", kind:"iso", reps:"12–20", img:"raise", pri:7, up:"Slow each sweep to 3 seconds."}),
+  BW({key:"scap_pushup",    name:"Scapular push-ups",              group:"traps", region:"pull", kind:"iso", reps:"12–20", img:"press", pri:6, up:"Do them with your feet elevated."}),
+  BW({key:"table_curl",     name:"Table curls (under a sturdy table)", group:"biceps", region:"pull", kind:"iso", reps:"8–15", img:"curl", pri:7, up:"Straighten your body so more weight hangs from your arms."}),
+  BW({key:"towel_curl",     name:"Towel isometric curl (seconds)", group:"biceps", region:"pull", kind:"iso", timed:true, reps:"20–45", img:"curl", pri:8, up:"Pull harder against the towel; try one arm at a time."}),
+  // legs
+  BW({key:"bw_squat",       name:"Bodyweight squats",              group:"quads", region:"legs", kind:"compound", reps:"15–25", img:"squat", g:"https://musclewiki.com/exercise/bodyweight-squat", pri:6, up:"Slow to 3 seconds down, or move to split squats."}),
+  BW({key:"bw_split_squat", name:"Split squats (per leg)",         group:"quads", region:"legs", kind:"compound", reps:"10–15", img:"lunge", g:"https://musclewiki.com/exercise/split-squat", pri:6, up:"Put your rear foot up on a chair."}),
+  BW({key:"rev_lunge",      name:"Reverse lunges (per leg)",       group:"quads", region:"legs", kind:"compound", reps:"10–15", img:"lunge", g:"https://musclewiki.com/exercise/bodyweight-reverse-lunge", pri:7, up:"Pause 2 seconds at the bottom."}),
+  BW({key:"step_up_bw",     name:"Step-ups on a chair (per leg)",  group:"quads", region:"legs", kind:"compound", reps:"10–15", img:"lunge", pri:7, up:"Use a higher step, or drive the other knee up."}),
+  BW({key:"pistol",         name:"Pistol squats (per leg)",        group:"quads", region:"legs", kind:"compound", img:"squat", pri:8, up:"Slow the lowering to 3 seconds."}),
+  BW({key:"jump_squat",     name:"Jump squats",                    group:"quads", region:"legs", kind:"compound", reps:"8–12", img:"squat", g:"https://musclewiki.com/exercise/jump-squats", pri:9, up:"Land softer and sink deeper on each rep."}),
+  BW({key:"wall_sit",       name:"Wall sit (seconds)",             group:"quads", region:"legs", kind:"iso", timed:true, reps:"30–60", img:"squat", g:"https://musclewiki.com/exercise/wall-sit", pri:7, up:"Lift one foot an inch off the floor."}),
+  BW({key:"nordic",         name:"Nordic curls (feet under a couch)", group:"hams", region:"legs", kind:"compound", reps:"4–8", img:"hinge", g:"https://musclewiki.com/exercise/nordic-hamstring-curl", pri:6, up:"Lower for 5 seconds and push up with less hand help."}),
+  BW({key:"sl_rdl_bw",      name:"Single-leg RDL, bodyweight (per leg)", group:"hams", region:"legs", kind:"compound", reps:"10–15", img:"hinge", g:"https://musclewiki.com/exercise/single-legged-romanian-deadlifts", pri:7, up:"Hold the bottom for 2 seconds."}),
+  BW({key:"slider_curl",    name:"Sliding hamstring curls (towel on floor)", group:"hams", region:"legs", kind:"iso", reps:"10–15", img:"hinge", g:"https://musclewiki.com/exercise/hamstring-curl-1-supine-single-leg-slider", pri:7, up:"Do them one leg at a time."}),
+  BW({key:"bw_bridge",      name:"Glute bridges",                  group:"glutes", region:"legs", kind:"compound", reps:"15–25", img:"hinge", g:"https://musclewiki.com/exercise/glute-bridge", pri:7, up:"Move to single-leg glute bridges."}),
+  BW({key:"sl_bridge",      name:"Single-leg glute bridge (per leg)", group:"glutes", region:"legs", kind:"compound", reps:"10–15", img:"hinge", g:"https://musclewiki.com/exercise/single-leg-glute-bridge", pri:6, up:"Put your planted foot up on a chair."}),
+  BW({key:"bridge_hold",    name:"Glute bridge hold (seconds)",    group:"glutes", region:"legs", kind:"iso", timed:true, reps:"30–60", img:"hinge", pri:8, up:"Hold on one leg."}),
+  BW({key:"side_leg_raise", name:"Side-lying leg raises (per side)", group:"glutes", region:"legs", kind:"iso", reps:"15–20", img:"sideplank", g:"https://musclewiki.com/exercise/abductor-leg-raise-side-lying", pri:8, up:"Pause 2 seconds at the top."}),
+  BW({key:"bw_calf",        name:"Calf raises (bodyweight)",       group:"calves", region:"legs", kind:"iso", reps:"15–25", img:"squat", g:"https://musclewiki.com/exercise/calf-raises", pri:6, up:"Move to single-leg calf raises."}),
+  BW({key:"sl_calf",        name:"Single-leg calf raises (per leg)", group:"calves", region:"legs", kind:"iso", reps:"12–20", img:"squat", g:"https://musclewiki.com/exercise/bodyweight-single-leg-calf-raise", pri:7, up:"Do them on a step for a deeper stretch."}),
+  // core
+  BW({key:"hollow_hold",    name:"Hollow hold (seconds)",          group:"abs", region:"core", kind:"iso", timed:true, reps:"20–45", img:"abs", g:"https://musclewiki.com/exercise/hollow-hold", pri:2, up:"Straighten your legs and lower them closer to the floor."}),
+  BW({key:"dead_bug",       name:"Dead bug (per side)",            group:"abs", region:"core", kind:"iso", reps:"10–15", img:"abs", g:"https://musclewiki.com/exercise/dead-bug", pri:4, up:"Slow each rep to 3 seconds."}),
+  BW({key:"crunch",         name:"Crunches",                       group:"abs", region:"core", kind:"iso", reps:"15–25", img:"abs", pri:5, up:"Pause at the top, or move to V-ups."}),
+  BW({key:"vup",            name:"V-ups",                          group:"abs", region:"core", kind:"iso", reps:"10–15", img:"abs", pri:5, up:"Slow the lowering to 3 seconds."}),
+  BW({key:"plank_taps",     name:"Plank shoulder taps (per side)", group:"abs", region:"core", kind:"iso", reps:"12–20", img:"sideplank", pri:6, up:"Bring your feet closer together."}),
+  BW({key:"mtn_climber",    name:"Mountain climbers (per side)",   group:"abs_lower", region:"core", kind:"iso", reps:"15–25", img:"abs", g:"https://musclewiki.com/exercise/mountain-climber", pri:5, up:"Slow them down and drive the knee to the chest."}),
+  BW({key:"scissor_kick",   name:"Scissor kicks (seconds)",        group:"abs_lower", region:"core", kind:"iso", timed:true, reps:"20–45", img:"abs", g:"https://musclewiki.com/exercise/scissor-kick", pri:6, up:"Keep your legs lower to the floor."}),
+  BW({key:"bicycle",        name:"Bicycle crunches (per side)",    group:"obliques", region:"core", kind:"iso", reps:"12–20", img:"abs", g:"https://musclewiki.com/exercise/bicycle-crunch", pri:3, up:"Slow each rep and pause at the twist."}),
 ];
 // Equipment the Setup page can toggle. Dumbbells and bench type are chosen separately.
 export const EQUIPMENT = [
@@ -266,8 +316,7 @@ export const planFromStore = pl => (pl || []).map(e => Array.isArray(e) ? e : [e
 export function alternatives(key, gear, dayKeys){
   const e = LIB_BY_KEY[key]; if (!e) return [];
   const have = new Set(gear.equipment || []); if (gear.bar) have.add("bar"); if (gear.bench && gear.bench !== "none") have.add("bench"); if (gear.bench === "incline") have.add("incline");
-  if ((gear.dumbbells || []).length) have.add("dumbbells");
-  const ok = x => x.needs.every(n => have.has(n)) && (x.bw || (x.equip === "db" ? gear.dumbbells.length > 0 : x.equip === "kb" ? (gear.kettlebells||[]).length > 0 : true));
+  const ok = x => x.needs.every(n => have.has(n)) && (x.bw || (x.equip === "db" ? (have.has("dumbbells") && gear.dumbbells.length > 0) : x.equip === "kb" ? (have.has("kettlebell") && (gear.kettlebells||[]).length > 0) : true));
   const muscle = MUSCLE[e.group];
   const same = LIB.filter(x => x.key !== key && ok(x) && !dayKeys.includes(x.key) && x.group === e.group);
   const near = LIB.filter(x => x.key !== key && ok(x) && !dayKeys.includes(x.key) && x.group !== e.group && MUSCLE[x.group] === muscle && x.kind === e.kind);

@@ -86,7 +86,7 @@ Everything a workout needs is decided before you start: which lifts, how many se
 
 ### The generator
 
-`src/lib/program.js` holds a library of ~75 movements, each tagged with muscle group, region (push / pull / legs / core), type (compound / isolation), what equipment it needs, and a starting weight for a 150 lb lifter.
+`src/lib/program.js` holds a library of ~120 movements (about 45 of them bodyweight and isometric, so the app works with no equipment at all), each tagged with muscle group, region (push / pull / legs / core), type (compound / isolation), what equipment it needs, and a starting weight for a 150 lb lifter.
 
 Building a program:
 
