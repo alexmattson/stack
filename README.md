@@ -106,8 +106,9 @@ Turn any exercise off on the Exercises page and the next-best option takes its s
 | What happened last time | What you get |
 |---|---|
 | First time on the lift | Starting weight at the bottom of the range |
-| Top of the range on every set | Next weight you own, reps reset to the bottom |
-| Otherwise | Same weight, +1 rep on each set below the top |
+| Top of the range on every set | Next weight you own, reps reset to the bottom (two steps if you rated it all Easy) |
+| Otherwise, set by set | Easy → +2 reps, Hard → +1, Max → hold; a set that missed its target holds too |
+| Under the bottom of the range on two sets | Drop one weight step and rebuild |
 | Reps fell 4+ from set one to the last set | Same targets, rest 2–3 minutes |
 | Three sessions at one weight, no rep gain | Drop one step, own the top of the range, climb back |
 | Maxed out your heaviest weight | Add reps, slow the lowering, buy heavier |
@@ -202,7 +203,7 @@ users/{uid}
   settings/program                   focus, goal, length, experience, bodyweight, excluded[]
   settings/equipment                 dumbbells[], bench, equipment[], kettlebells[], barbell{}, ezbar{}, cable{}, bands[]
   settings/schedule                  trainingDays[]
-  sessions/{date}_{dayKey}           date, day, plan[] (frozen), sets{key:[{w,r}]}, note, savedAt
+  sessions/{date}_{dayKey}           date, day, plan[] (frozen), sets{key:[{w,r,e?,t?}]} (e = effort 1–3, t = target reps), note, savedAt
   bodylog/{date}                     weight, arm
 ```
 

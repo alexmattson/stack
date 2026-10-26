@@ -67,7 +67,7 @@ export function useData(uid){
   }, [db, sessions, program, gyms]);
 
   const api = {
-    saveSet: (id, date, dayIdx, key, i, w, r, e) => writeSession(id, date, dayIdx, d => { d.sets[key] = d.sets[key] || []; while (d.sets[key].length <= i) d.sets[key].push({w:0, r:0}); d.sets[key][i] = e ? {w, r, e} : {w, r}; }),
+    saveSet: (id, date, dayIdx, key, i, w, r, e, t) => writeSession(id, date, dayIdx, d => { d.sets[key] = d.sets[key] || []; while (d.sets[key].length <= i) d.sets[key].push({w:0, r:0}); const s = {w, r}; if (e) s.e = e; if (t) s.t = t; d.sets[key][i] = s; }),
     saveCheckin: c => db.set("checkins/" + today(), {date:today(), ...c}),
     saveNote: (key, text) => { const n = {...notes, [key]:text}; if (!text) delete n[key]; setNotes(n); return db.set("settings/exnotes", n); },
     swapExercise: (id, date, dayIdx, oldKey, row) => writeSession(id, date, dayIdx, d => { const pl = d.plan.map(e => e.key === oldKey ? {key:row[0], name:row[1], sets:e.sets, reps:row[3], w:row[4], q:row[5], g:row[6], pair:e.pair || null} : e); d.plan = pl; delete d.sets[oldKey]; }),

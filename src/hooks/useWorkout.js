@@ -60,7 +60,7 @@ export function useWorkout(data, date, dayIdx){
   const restFor = (key, isLast, from, nxt) => { if (from && nxt && day.ex[from.ei][7] && day.ex[from.ei][7] === day.ex[nxt.ei][7] && from.ei !== nxt.ei) return REST.superset; return isLast ? REST.last : COMPOUND.has(key) ? REST.compound : REST.iso; };
   const swap = (oldKey, alt) => api.swapExercise(id, date, dayIdx, oldKey, rowFor(alt, data.gear, data.prog));
   const alts = key => alternatives(key, data.gear, day.ex.map(e => e[0]));
-  const save = async (key, i, w, r, e) => { const pr = detectPR(data.prs, key, w, r); await api.saveSet(id, date, dayIdx, key, i, w, r, e); return pr; };
+  const save = async (key, i, w, r, e) => { const pr = detectPR(data.prs, key, w, r); const t = (suggestions[key] && suggestions[key].reps[i]) || null; await api.saveSet(id, date, dayIdx, key, i, w, r, e, t); return pr; };
   const finish = (pending, note) => api.finish(id, date, dayIdx, pending, note);
   return { id, date, session, day, total, doneCount, savedSet, nextOpen, ptr, setPtr, flatIndex, suggestions, restFor, save, finish, isBW: key => BODYWEIGHT_EX.has(key), isDeload, cycle:cyc, sequence, seqIndex, prevInSeq, nextInSeq, isLastInSeq, swap, alts, markWu, isOpen, workingIndex, warmupPlan: () => warmupPlan(day, suggestions, data.gear, savedSet) };
 }

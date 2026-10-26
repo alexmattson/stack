@@ -108,3 +108,15 @@ test("supersets pair the last two isolation lifts; swaps stay in the muscle grou
   // every lift in a default program has at least one swap
   for (const d of p) for (const e of d.ex) assert.ok(alternatives(e[0], g50, d.ex.map(x => x[0])).length > 0, e[0]);
 });
+test("progression reads per-set effort and misses", () => {
+  const ex = ["flat_press","Flat",4,"8–12",35,"",""]; const d = "2026-10-20";
+  const r = (sets) => suggest(ex, [{date:d, sets:{flat_press:sets}}], g50);
+  // easy sets +2, hard +1, max holds, missed target holds
+  assert.deepEqual(r([{w:35,r:9,e:1,t:9},{w:35,r:9,e:2,t:9},{w:35,r:9,e:3,t:9},{w:35,r:7,e:2,t:9}]).reps, [11,10,9,7]);
+  // every set max → repeat
+  const m = r([{w:35,r:9,e:3},{w:35,r:9,e:3},{w:35,r:8,e:3},{w:35,r:8,e:3}]); assert.deepEqual(m.reps, [9,9,8,8]); assert.equal(m.w, 35);
+  // two sets under the range → weight drops a step
+  const b = r([{w:35,r:8},{w:35,r:6},{w:35,r:5},{w:35,r:5}]); assert.equal(b.w, 30);
+  // top of range everywhere but a max-effort set → one step up, not two
+  const t = r([{w:35,r:12,e:1},{w:35,r:12,e:1},{w:35,r:12,e:1},{w:35,r:12,e:3}]); assert.equal(t.w, 40);
+});

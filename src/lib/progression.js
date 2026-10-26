@@ -59,18 +59,25 @@ export function suggest(ex, sessions, gear, ctx = {}){
     totalReps(prevSame[1].sets.map(s => s.r)) <= totalReps(prevSame[2].sets.map(s => s.r));
   if (allHitTop) {
     const up = nextDB(lastW);
-    if (up && effort <= 1.34) { const up2 = nextDB(up) || up; return {w:up2, reps:fill(range.lo), why:`Top of the range and you called it easy. Two steps up to ${up2} lb; reps reset to ${range.lo}.`}; }
+    if (up && effort <= 1.34 && !last.sets.some(s => s.e === 3)) { const up2 = nextDB(up) || up; return {w:up2, reps:fill(range.lo), why:`Top of the range and you called it easy. Two steps up to ${up2} lb; reps reset to ${range.lo}.`}; }
     if (up) return {w:up, reps:fill(range.lo), why:`You hit ${range.hi}+ on every set at ${lastW} lb. Weight goes up to ${up}; reps reset to ${range.lo}.`};
     return {w:lastW, reps:lastReps.map(r => r + 1), why: equip === "db" || equip === "kb" ? `Maxed out your ${maxDB}s. Add a rep per set, lower for 3 seconds, pause at the bottom. Time to buy heavier.` : `At your max load (${maxDB} lb). Add a rep per set and slow the lowering; update Setup if you get more plates.`};
   }
   if (stalled) { const w = prevDB(lastW); return {w, reps:fill(range.hi), why:`Three sessions at ${lastW} lb with no rep gain. Drop to ${w} lb, own the top of the range, then climb back.`}; }
-  if (effort >= 2.67 && !fatigue) { const reps = lastReps.slice(); while (reps.length < n) reps.push(range.lo); return {w:lastW, reps, why:`Every set was max effort last time. Repeat ${lastW} lb for ${lastReps.join(", ")} and own it before adding.`}; }
-  const bump = effort <= 1.34 ? 2 : 1;
-  const reps = lastReps.map(r => Math.min(range.hi, r + bump));
+  // Below the bottom of the range on two or more sets: the weight is too heavy right now.
+  const belowLo = last.sets.filter(s => s.r < range.lo).length;
+  if (belowLo >= 2 && prevDB(lastW) < lastW) { const w = prevDB(lastW); return {w, reps:fill(range.lo + 2), why:`Under ${range.lo} reps on ${belowLo} sets at ${lastW} lb. Back to ${w} lb for ${range.lo + 2}s, then climb again.`}; }
+  // Per set: easy → +2, hard → +1, max → hold. A set that missed its target holds too (you don't add to a rep you didn't get).
+  const perSet = last.sets.map(s => { const e = s.e || 2; const missed = s.t && s.r < s.t; const bump = e === 1 ? 2 : (e === 3 || missed) ? 0 : 1; return {r:s.r, e, missed, bump}; });
+  const reps = perSet.map(s => Math.min(range.hi, s.r + s.bump));
   while (reps.length < n) reps.push(range.lo);
-  const why = fatigue
-    ? `Reps fell from ${lastReps[0]} to ${lastReps[lastReps.length - 1]} last time. Same weight, +1 rep, and rest a full 2–3 minutes between sets.`
-    : `Last time ${lastReps.join(", ")} at ${lastW} lb. Same weight, add ${bump === 2 ? "two reps" : "one rep"} per set. Hit ${range.hi} on all sets and the weight goes up.`;
+  const held = perSet.filter(s => s.bump === 0).length, missedN = perSet.filter(s => s.missed).length, maxN = perSet.filter(s => s.e === 3).length;
+  let why;
+  if (held === perSet.length) why = missedN ? `Missed the target on ${missedN === 1 ? "a set" : missedN + " sets"} last time. Repeat ${lastW} lb for ${lastReps.join(", ")} and own it before adding.` : `Every set was max effort last time. Repeat ${lastW} lb for ${lastReps.join(", ")} and own it before adding.`;
+  else if (fatigue) why = `Reps fell from ${lastReps[0]} to ${lastReps[lastReps.length - 1]} last time. Same weight, a rep more where you had something left, and rest a full 2–3 minutes between sets.`;
+  else if (held) why = `Last time ${lastReps.join(", ")} at ${lastW} lb. Add a rep on the sets you had in hand; ${missedN ? "the missed set" : "the max-effort set"}${held > 1 ? "s" : ""} stay${held > 1 ? "" : "s"} put.`;
+  else if (perSet.every(s => s.e === 1)) why = `Last time ${lastReps.join(", ")} at ${lastW} lb and you called it all easy. Two reps more per set. Hit ${range.hi} everywhere and the weight goes up.`;
+  else why = `Last time ${lastReps.join(", ")} at ${lastW} lb. Same weight, a rep more per set${perSet.some(s => s.e === 1) ? ", two on the easy ones" : ""}. Hit ${range.hi} on all sets and the weight goes up.`;
   return {w:lastW, reps, why};
 }
 
