@@ -115,7 +115,7 @@ function wav(parts, drive = 1){ // parts: [{f, at, dur, vol, type, f2}] seconds;
   for (const {f, at, dur, vol = .5, type = "sine", f2} of parts) { const s0 = Math.floor(at * SR), n = Math.floor(dur * SR);
     for (let k = 0; k < n; k++) { const t = k / SR; const env = Math.min(1, k / (SR * .01)) * Math.min(1, (n - k) / (SR * .04));
       const fk = f2 ? f + (f2 - f) * (k / n) : f; const ph = f2 ? 2 * Math.PI * (f * t + (f2 - f) * t * t / (2 * dur)) : 2 * Math.PI * f * t;
-      const v = type === "triangle" ? (2 / Math.PI) * Math.asin(Math.sin(ph)) : type === "saw" ? 2 * ((ph / (2 * Math.PI)) % 1) - 1 : type === "square" ? (Math.sin(ph) >= 0 ? .6 : -.6) : type === "noise" ? Math.random() * 2 - 1 : type === "drop" ? Math.sin(2 * Math.PI * f * t * Math.exp(-t * 6)) : Math.sin(ph);
+      const v = type === "triangle" ? (2 / Math.PI) * Math.asin(Math.sin(ph)) : type === "saw" ? 2 * ((ph / (2 * Math.PI)) % 1) - 1 : type === "square" ? (Math.sin(ph) >= 0 ? .6 : -.6) : type === "noise" ? Math.random() * 2 - 1 : type === "whistle" ? Math.sin(ph) * (.6 + .4 * Math.sin(2 * Math.PI * 38 * t)) + (Math.random() - .5) * .08 : type === "drop" ? Math.sin(2 * Math.PI * f * t * Math.exp(-t * 6)) : Math.sin(ph);
       pcm[s0 + k] += v * vol * env; } }
   if (drive > 1) for (let k = 0; k < len; k++) pcm[k] = Math.tanh(pcm[k] * drive);
   let peak = 0; for (let k = 0; k < len; k++) peak = Math.max(peak, Math.abs(pcm[k])); const norm = peak > .95 ? .95 / peak : 1;
@@ -129,14 +129,11 @@ const sounds = () => SOUNDS || (SOUNDS = {
   silent: wav([{f:1, at:0, dur:.05, vol:0}]),
   tick: wav([{f:880, at:0, dur:.08, vol:.5}]),
   tickHi: wav([{f:1046, at:0, dur:.08, vol:.5}]),
-  // GO: a siren riser into a low, distorted horn blast. Dark and loud, not a jingle.
+  // GO: a referee's pea whistle — one hard blast. The two close tones and the fast warble are what make it read as a whistle.
   go: wav([
-    {f:220, at:0, dur:.55, vol:.35, type:"saw", f2:880}, {f:223, at:0, dur:.55, vol:.35, type:"saw", f2:892}, {f:440, at:0, dur:.55, vol:.15, type:"square", f2:1760},
-    {f:1, at:.45, dur:.1, vol:.3, type:"noise"},
-    {f:60, at:.55, dur:.35, vol:1.2, type:"drop"},
-    {f:110, at:.55, dur:1.1, vol:.6, type:"saw"}, {f:111.5, at:.55, dur:1.1, vol:.6, type:"saw"}, {f:108.5, at:.55, dur:1.1, vol:.6, type:"saw"}, {f:55, at:.55, dur:1.1, vol:.7, type:"square"}, {f:165, at:.55, dur:1.1, vol:.4, type:"saw"}, {f:220, at:.55, dur:1.1, vol:.3, type:"square"}, {f:330, at:.55, dur:.8, vol:.2, type:"saw"},
-    {f:60, at:1.0, dur:.4, vol:1.2, type:"drop"}, {f:1, at:1.0, dur:.06, vol:.3, type:"noise"},
-  ], 3),
+    {f:2640, at:0, dur:.75, vol:.55, type:"whistle"}, {f:2960, at:0, dur:.75, vol:.4, type:"whistle"}, {f:1320, at:0, dur:.75, vol:.08, type:"sine"},
+    {f:1, at:0, dur:.03, vol:.35, type:"noise"},
+  ]),
 });
 export function useBeep(){
   const el = React.useRef(null);
