@@ -114,10 +114,12 @@ function wav(parts){ // parts: [{f, at, dur, vol, type}] seconds
   const len = Math.ceil(SR * Math.max(...parts.map(x => x.at + x.dur)) + SR * .02); const pcm = new Float32Array(len);
   for (const {f, at, dur, vol = .5, type = "sine"} of parts) { const s0 = Math.floor(at * SR), n = Math.floor(dur * SR);
     for (let k = 0; k < n; k++) { const t = k / SR; const env = Math.min(1, k / (SR * .01)) * Math.min(1, (n - k) / (SR * .04)); const ph = 2 * Math.PI * f * t;
-      const v = type === "triangle" ? (2 / Math.PI) * Math.asin(Math.sin(ph)) : Math.sin(ph); pcm[s0 + k] += v * vol * env; } }
+      const v = type === "triangle" ? (2 / Math.PI) * Math.asin(Math.sin(ph)) : type === "saw" ? 2 * ((f * t) % 1) - 1 : type === "square" ? (Math.sin(ph) >= 0 ? .6 : -.6) : type === "noise" ? Math.random() * 2 - 1 : type === "drop" ? Math.sin(2 * Math.PI * f * t * Math.exp(-t * 6)) : Math.sin(ph);
+      pcm[s0 + k] += v * vol * env; } }
+  let peak = 0; for (let k = 0; k < len; k++) peak = Math.max(peak, Math.abs(pcm[k])); const norm = peak > .95 ? .95 / peak : 1;
   const b = new ArrayBuffer(44 + len * 2), d = new DataView(b); const str = (o, t) => { for (let k = 0; k < t.length; k++) d.setUint8(o + k, t.charCodeAt(k)); };
   str(0, "RIFF"); d.setUint32(4, 36 + len * 2, true); str(8, "WAVE"); str(12, "fmt "); d.setUint32(16, 16, true); d.setUint16(20, 1, true); d.setUint16(22, 1, true); d.setUint32(24, SR, true); d.setUint32(28, SR * 2, true); d.setUint16(32, 2, true); d.setUint16(34, 16, true); str(36, "data"); d.setUint32(40, len * 2, true);
-  for (let k = 0; k < len; k++) d.setInt16(44 + k * 2, Math.max(-1, Math.min(1, pcm[k])) * 32767, true);
+  for (let k = 0; k < len; k++) d.setInt16(44 + k * 2, Math.max(-1, Math.min(1, pcm[k] * norm)) * 32767, true);
   return URL.createObjectURL(new Blob([b], {type:"audio/wav"}));
 }
 let SOUNDS = null;
@@ -125,7 +127,15 @@ const sounds = () => SOUNDS || (SOUNDS = {
   silent: wav([{f:1, at:0, dur:.05, vol:0}]),
   tick: wav([{f:880, at:0, dur:.08, vol:.5}]),
   tickHi: wav([{f:1046, at:0, dur:.08, vol:.5}]),
-  go: wav([{f:660, at:0, dur:.16, vol:.6, type:"triangle"}, {f:880, at:.18, dur:.16, vol:.6, type:"triangle"}, {f:1320, at:.36, dur:.45, vol:.65, type:"triangle"}]),
+  // GO: kick + fast rising run, then two big stabbed chords with a kick under each. Loud, bright, unmistakable.
+  go: wav([
+    {f:150, at:0, dur:.18, vol:.9, type:"drop"}, {f:1, at:0, dur:.05, vol:.25, type:"noise"},
+    {f:523, at:.02, dur:.07, vol:.35, type:"saw"}, {f:659, at:.09, dur:.07, vol:.38, type:"saw"}, {f:784, at:.16, dur:.07, vol:.42, type:"saw"}, {f:1046, at:.23, dur:.07, vol:.45, type:"saw"},
+    {f:150, at:.32, dur:.2, vol:1, type:"drop"}, {f:1, at:.32, dur:.04, vol:.3, type:"noise"},
+    {f:523, at:.32, dur:.22, vol:.3, type:"square"}, {f:659, at:.32, dur:.22, vol:.3, type:"square"}, {f:784, at:.32, dur:.22, vol:.3, type:"square"}, {f:1046, at:.32, dur:.22, vol:.3, type:"saw"}, {f:262, at:.32, dur:.22, vol:.35, type:"saw"},
+    {f:150, at:.6, dur:.3, vol:1, type:"drop"}, {f:1, at:.6, dur:.05, vol:.35, type:"noise"},
+    {f:587, at:.6, dur:.7, vol:.32, type:"square"}, {f:740, at:.6, dur:.7, vol:.32, type:"square"}, {f:880, at:.6, dur:.7, vol:.32, type:"square"}, {f:1175, at:.6, dur:.7, vol:.34, type:"saw"}, {f:294, at:.6, dur:.7, vol:.4, type:"saw"}, {f:1760, at:.6, dur:.5, vol:.15, type:"triangle"},
+  ]),
 });
 export function useBeep(){
   const el = React.useRef(null);
