@@ -65,7 +65,7 @@ const PRList = ({ prs, names }) => {
 export function ProgressPage({ data, onBack }){
   const { sessions, bodylog, program, trainingDays, prog, api } = data;
   const [form, setForm] = useState({date:today(), w:"", arm:""}); const [st, setSt] = useStatus();
-  const [liftTab, setLiftTab] = useState("prs");
+  const [liftTab, setLiftTab] = useState("trend");
   const bl = bodylog.filter(b => b.weight).sort((a, b) => a.date.localeCompare(b.date));
   const lastW = bl.length ? bl[bl.length - 1].weight : prog.bodyweight; const d0 = bl.length ? lastW - bl[0].weight : 0;
   const names = {}; program.forEach(d => d.ex.forEach(([k, n]) => names[k] = names[k] || n)); sessions.forEach(s => planFromStore(s.plan).forEach(([k, n]) => names[k] = names[k] || n));
@@ -86,7 +86,7 @@ export function ProgressPage({ data, onBack }){
       <h2>Volume</h2>
       <VolumeCard sessions={sessions} program={program} prog={prog}/>
       <h2>Lifts</h2>
-      <div className="tabs2"><button aria-pressed={liftTab === "prs"} onClick={() => setLiftTab("prs")}>Records</button><button aria-pressed={liftTab === "trend"} onClick={() => setLiftTab("trend")}>First vs latest</button></div>
+      <div className="tabs2"><button aria-pressed={liftTab === "trend"} onClick={() => setLiftTab("trend")}>First vs latest</button><button aria-pressed={liftTab === "prs"} onClick={() => setLiftTab("prs")}>Records</button></div>
       {liftTab === "prs" ? <PRList prs={data.prs} names={names}/> : <Card><LiftList st={summary}/></Card>}
       <h2>Weigh in</h2>
       <Card>

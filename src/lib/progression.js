@@ -87,7 +87,8 @@ export function strengthSummary(sessions, names){
   });
   const score = (k, t) => BODYWEIGHT_EX.has(k) ? t.r : e1rm(t.w, t.r);
   return Object.keys(byEx).map(k => { const f = byEx[k].first, l = byEx[k].last; const same = f.date === l.date;
-    return {k, name:names[k] || k, first:f, last:l, delta: same ? 0 : score(k, l) - score(k, f), pct: same ? 0 : Math.round((score(k, l) - score(k, f)) / score(k, f) * 100)}; });
+    return {k, name:names[k] || k, first:f, last:l, delta: same ? 0 : score(k, l) - score(k, f), pct: same ? 0 : Math.round((score(k, l) - score(k, f)) / score(k, f) * 100)}; })
+    .sort((a, b) => b.pct - a.pct || b.delta - a.delta || a.name.localeCompare(b.name));   // biggest improvement first
 }
 
 export const REST = { compound:150, iso:90, last:120, superset:30 };
