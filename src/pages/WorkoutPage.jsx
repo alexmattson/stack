@@ -3,7 +3,6 @@ import { PageHeader, BackButton, IconButton, Card, Pill, Icon, IconBubble, BigIn
 import { useRestTimer } from "../hooks/useRestTimer.js";
 import { fmtDate } from "../lib/dates.js";
 import { exImg, TIMED } from "../lib/program.js";
-import { warmups } from "../lib/warmup.js";
 
 const RestBar = ({ timer, nextText, onSkip }) => (
   <div className={`timer ${timer.active ? "on" : ""} ${timer.done ? "go" : ""}`}>
@@ -72,7 +71,7 @@ const SetRow = ({ ex, i, wo, draft, setDraft, onSave, current }) => {
 
 const ExerciseCard = ({ ex, ei, wo, draft, setDraft, onSave, onFocus, status, note, gear }) => {
   const [key, name, n, reps, , q, g, pair] = ex; const bw = wo.isBW(key); const sg = wo.suggestions[key];
-  const wu = !wo.savedSet(key, 0) ? warmups(key, sg.w, gear) : [];
+  const wu = wo.warmupPlan()[ei] || [];
   const target = bw ? sg.reps.map(r => r ?? "max").join(", ") : `${sg.w} lb × ${sg.reps.join(", ")}`;
   return (
     <div className="exl">

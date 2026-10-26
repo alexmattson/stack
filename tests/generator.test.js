@@ -70,7 +70,22 @@ test("readiness and recovery", () => {
 });
 
 import { warmups, platesPerSide } from "../src/lib/warmup.js";
-import { alternatives } from "../src/lib/program.js";
+import { alternatives, patternOf } from "../src/lib/program.js";
+import { warmupPlan } from "../src/lib/warmup.js";
+test("no day stacks the same movement pattern more than twice; ramps only where they earn their place", () => {
+  const gears = [g50, normalizeGear({...GEAR_DEFAULTS, equipment:["dumbbells","bench","bar","barbell","rack"]}), normalizeGear({equipment:[], dumbbells:[], bench:"none", bar:false})];
+  for (const g of gears) for (const focus of [["upper","core"], ["upper","lower","core"], ["lower"]]) for (const days of [[1,2,4,5], [1,3,5], [0,1,2,3,4,5]]) {
+    const p = buildProgram({gear:g, prog:{...PROGRAM_DEFAULTS, focus}, trainingDays:days});
+    for (const d of p) { const c = {}; d.ex.forEach(e => { const pt = patternOf(e[0]); if (pt) c[pt] = (c[pt] || 0) + 1; }); for (const k in c) assert.ok(c[k] <= 2, `${focus.join("+")} ${d.name}: ${k} ×${c[k]} (${d.ex.map(e => e[0]).join(",")})`); }
+  }
+  const p = buildProgram({gear:g50, prog:PROGRAM_DEFAULTS, trainingDays:[1,2,4,5]});
+  const sug = Object.fromEntries(p[0].ex.map(e => [e[0], {w:e[4]}]));
+  const plan = warmupPlan(p[0], sug, g50, () => null);
+  const eis = Object.keys(plan).map(Number);
+  assert.equal(eis[0], 0); assert.equal(plan[0].length, 3);                      // first lift: full ramp
+  for (const ei of eis.slice(1)) assert.equal(plan[ei].length, 1);                // later lifts: one feel set
+  const pats = eis.map(ei => patternOf(p[0].ex[ei][0])); assert.equal(new Set(pats).size, pats.length); // one per pattern
+});
 test("warm-ups ramp below the working weight and snap to owned weights", () => {
   assert.deepEqual(warmups("flat_press", 40, g50).map(s => s.w), [20, 30, 35]);
   assert.deepEqual(warmups("lateral", 15, g50), []);          // isolation: no ramp

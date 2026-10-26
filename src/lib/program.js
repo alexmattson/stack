@@ -167,6 +167,20 @@ export const EQUIPMENT = [
 ];
 export const BAND_LEVELS = [["light","Light"],["medium","Medium"],["heavy","Heavy"],["xheavy","X-heavy"]];
 export const LIB_BY_KEY = Object.fromEntries(LIB.map(e => [e.key, e]));
+// Movement pattern of each compound lift. A day avoids stacking the same pattern (three rows in a row), and the
+// warm-up ramp is only needed for the first lift of each pattern.
+const PATTERNS = {
+  h_press:["flat_press","floor_press","incline_press","pushup","cg_press","bb_bench","bb_incline","dip","decline_pushup","wide_pushup","diamond_pushup","bench_dip"],
+  v_press:["ohp","arnold","bb_ohp","kb_press","pike_pushup"],
+  v_pull:["chinup","pullup","lat_pulldown"],
+  h_pull:["row","cs_row","bo_row","bo_row2","renegade","bb_row","cable_row","inverted_row","door_row"],
+  squat:["goblet","db_squat","bb_squat","kb_goblet","bw_squat","jump_squat","pistol"],
+  lunge:["split_squat","lunge","step_up","bw_split_squat","rev_lunge","step_up_bw"],
+  hinge:["rdl","sl_rdl","bb_deadlift","bb_rdl","kb_swing","nordic","sl_rdl_bw"],
+  bridge:["hip_thrust","glute_bridge","bb_hip_thrust","bw_bridge","sl_bridge"],
+};
+export const PATTERN = Object.fromEntries(Object.entries(PATTERNS).flatMap(([p, keys]) => keys.map(k => [k, p])));
+export const patternOf = key => PATTERN[key] || null;
 
 // ---------- day templates ----------
 // Each day is a list of slots; a slot names acceptable muscle groups in order of preference.
@@ -225,16 +239,20 @@ export function buildProgram(opts){
   const usedCount = {};                                  // spread variety across the week
   // each new block nudges the second-choice exercises up so the plan rotates without losing the main lifts
   const rot = e => { if (block <= 1 || e.pri === 0) return 0; let h = block; for (const ch of e.key) h = (h * 31 + ch.charCodeAt(0)) % 97; return h % 2 ? -1.5 : 0; };
-  const pick = (groups, usedToday) => {
-    for (const g of groups) {
-      const cands = LIB.filter(e => e.group === g && ok(e) && !usedToday.has(e.key)).sort((a,b) => (a.pri + rot(a) + (usedCount[a.key]||0)*2) - (b.pri + rot(b) + (usedCount[b.key]||0)*2));
-      if (cands.length) return cands[0];
-    }
-    return null;
+  // Variety within a day: a lift whose movement pattern is already in the day scores 3 worse per repeat,
+  // so the third "back" slot becomes a pullover or rear-delt move rather than a third row.
+  const patternsToday = usedToday => { const c = {}; for (const k of usedToday) { const p = PATTERN[k]; if (p) c[p] = (c[p] || 0) + 1; } return c; };
+  const pick = (groups, usedToday, slot = 9) => {
+    const pt = patternsToday(usedToday);
+    // the first two slots of a day should be compounds when any exist for the group
+    const score = e => e.pri + rot(e) + (usedCount[e.key]||0)*2 + (PATTERN[e.key] ? (pt[PATTERN[e.key]] || 0) * 3 : 0) + (slot < 2 && e.kind !== "compound" ? 4 : 0);
+    // all of the slot's groups compete, earlier groups with a small head start
+    const cands = groups.flatMap((g, gi) => LIB.filter(e => e.group === g && ok(e) && !usedToday.has(e.key)).map(e => [score(e) + gi * 0.5, e])).sort((a, b) => a[0] - b[0]);
+    return cands.length ? cands[0][1] : null;
   };
   const program = split.map((d, i) => {
     const usedToday = new Set(); const ex = [];
-    for (const slot of T[d.kind]) { if (ex.length >= liftsPer) break; const e = pick(slot, usedToday); if (e) { usedToday.add(e.key); usedCount[e.key] = (usedCount[e.key]||0) + 1; ex.push(e); } }
+    for (const [si, slot] of T[d.kind].entries()) { if (ex.length >= liftsPer) break; const e = pick(slot, usedToday, si); if (e) { usedToday.add(e.key); usedCount[e.key] = (usedCount[e.key]||0) + 1; ex.push(e); } }
     let coreEx = [];
     if (d.core && (days <= 2 || i % 2 === 1 || days === 3)) {           // core finisher on every other day (every day when 2–3 days)
       for (const slot of T.core) { const e = pick(slot, usedToday); if (e) { usedToday.add(e.key); usedCount[e.key] = (usedCount[e.key]||0) + 1; coreEx.push(e); } }
