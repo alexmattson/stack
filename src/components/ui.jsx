@@ -107,17 +107,35 @@ export function useStatus(timeout = 4000){
   return [st, set];
 }
 
+// Sounds are rendered to tiny WAV files and played through an <audio> element rather than Web Audio.
+// On iPhone, Web Audio counts as a "ringer" sound and is muted by the silent switch; media playback is not.
+const SR = 22050;
+function wav(parts){ // parts: [{f, at, dur, vol, type}] seconds
+  const len = Math.ceil(SR * Math.max(...parts.map(x => x.at + x.dur)) + SR * .02); const pcm = new Float32Array(len);
+  for (const {f, at, dur, vol = .5, type = "sine"} of parts) { const s0 = Math.floor(at * SR), n = Math.floor(dur * SR);
+    for (let k = 0; k < n; k++) { const t = k / SR; const env = Math.min(1, k / (SR * .01)) * Math.min(1, (n - k) / (SR * .04)); const ph = 2 * Math.PI * f * t;
+      const v = type === "triangle" ? (2 / Math.PI) * Math.asin(Math.sin(ph)) : Math.sin(ph); pcm[s0 + k] += v * vol * env; } }
+  const b = new ArrayBuffer(44 + len * 2), d = new DataView(b); const str = (o, t) => { for (let k = 0; k < t.length; k++) d.setUint8(o + k, t.charCodeAt(k)); };
+  str(0, "RIFF"); d.setUint32(4, 36 + len * 2, true); str(8, "WAVE"); str(12, "fmt "); d.setUint32(16, 16, true); d.setUint16(20, 1, true); d.setUint16(22, 1, true); d.setUint32(24, SR, true); d.setUint32(28, SR * 2, true); d.setUint16(32, 2, true); d.setUint16(34, 16, true); str(36, "data"); d.setUint32(40, len * 2, true);
+  for (let k = 0; k < len; k++) d.setInt16(44 + k * 2, Math.max(-1, Math.min(1, pcm[k])) * 32767, true);
+  return URL.createObjectURL(new Blob([b], {type:"audio/wav"}));
+}
+let SOUNDS = null;
+const sounds = () => SOUNDS || (SOUNDS = {
+  silent: wav([{f:1, at:0, dur:.05, vol:0}]),
+  tick: wav([{f:880, at:0, dur:.08, vol:.5}]),
+  tickHi: wav([{f:1046, at:0, dur:.08, vol:.5}]),
+  go: wav([{f:660, at:0, dur:.16, vol:.6, type:"triangle"}, {f:880, at:.18, dur:.16, vol:.6, type:"triangle"}, {f:1320, at:.36, dur:.45, vol:.65, type:"triangle"}]),
+});
 export function useBeep(){
-  const ctx = React.useRef(null);
-  const prime = () => { try { if (!ctx.current) ctx.current = new (window.AudioContext || window.webkitAudioContext)(); ctx.current.resume(); } catch (e) {} };
-  const tone = (freq, at, dur, vol = 0.25, type = "sine") => { const c = ctx.current; if (!c) return; const o = c.createOscillator(), g = c.createGain(); o.type = type; o.frequency.value = freq; o.connect(g); g.connect(c.destination);
-    g.gain.setValueAtTime(0.0001, c.currentTime + at); g.gain.exponentialRampToValueAtTime(vol, c.currentTime + at + .015); g.gain.exponentialRampToValueAtTime(0.0001, c.currentTime + at + dur); o.start(c.currentTime + at); o.stop(c.currentTime + at + dur + .02); };
+  const el = React.useRef(null);
+  const get = () => { if (!el.current) { const a = new Audio(); a.setAttribute("playsinline", ""); a.preload = "auto"; el.current = a; } return el.current; };
+  const play = src => { try { const a = get(); a.src = src; a.currentTime = 0; const p = a.play(); if (p && p.catch) p.catch(() => {}); } catch (e) {} };
+  // Must run inside a tap: unlocks the element so later plays work without a gesture, even from the silent switch.
+  const prime = () => { try { sounds(); play(sounds().silent); } catch (e) {} };
   // one short tick per second for the last ten seconds
-  const tick = n => { try { if (navigator.vibrate) navigator.vibrate(30); } catch (e) {} try { tone(n <= 3 ? 1046 : 880, 0, .08, 0.18); } catch (e) {} };
+  const tick = n => { try { if (navigator.vibrate) navigator.vibrate(30); } catch (e) {} play(n <= 3 ? sounds().tickHi : sounds().tick); };
   // "go": a rising three-note chime, clearly different from the ticks
-  const beep = () => {
-    try { if (navigator.vibrate) navigator.vibrate([250, 80, 250, 80, 400]); } catch (e) {}
-    try { tone(660, 0, .16, .3, "triangle"); tone(880, .18, .16, .3, "triangle"); tone(1320, .36, .45, .32, "triangle"); } catch (e) {}
-  };
+  const beep = () => { try { if (navigator.vibrate) navigator.vibrate([250, 80, 250, 80, 400]); } catch (e) {} play(sounds().go); };
   return { prime, beep, tick };
 }
