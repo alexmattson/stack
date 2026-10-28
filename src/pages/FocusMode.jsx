@@ -39,19 +39,22 @@ export function FocusMode({ data, wo, onBack, onHome }){
   const [swapOpen, setSwapOpen] = useState(false); const [swapping, setSwapping] = useState(false);
   useEffect(() => { setNoteText(data.notes[key] || ""); setNoteOpen(false); setSwapOpen(false); }, [key]); // eslint-disable-line
   const partnerName = pair ? (wo.day.ex.find((x, j) => x[7] === pair && j !== wo.ptr.ei) || [])[1] : null;
-  useEffect(() => { if (!ex) return; setW(bw ? "" : String(sv ? sv.w : sg.w)); setR(String(sv ? sv.r : (sg.reps[wo.ptr.si] ?? ""))); setEffort(sv && sv.e ? sv.e : 2); setStatus(""); setPr(null); }, [wo.ptr, wo.id]); // eslint-disable-line
+  const lt = ex && !isWu && !isGen ? wo.target(key, wo.ptr.si) : null;
+  useEffect(() => { if (!ex || isGen) return; setW(bw ? "" : String(sv ? sv.w : (lt ? lt.w : sg.w))); setR(String(sv ? sv.r : (lt ? (lt.r ?? "") : (sg.reps[wo.ptr.si] ?? "")))); setEffort(sv && sv.e ? sv.e : 2); setStatus(""); setPr(null); }, [wo.ptr, wo.id]); // eslint-disable-line
   const done = async () => {
     const wv = bw ? 0 : +w || 0, rv = +r || 0;
     if (!rv) return setStatus("Enter the reps you got."); if (!bw && !wv) return setStatus("Enter the weight.");
     setBusy(true); let hit = null; try { hit = await wo.save(key, wo.ptr.si, wv, rv, effort); } catch (e) { setBusy(false); return setStatus(data.api.friendlyDbError(e)); } setBusy(false);
     if (hit) { setPr(hit); try { if (navigator.vibrate) navigator.vibrate([60, 40, 60, 40, 120]); } catch (e) {} }
+    const just = {i: wo.ptr.si, w: wv, r: rv, t: lt ? lt.r : null};
     const nxt = wo.nextOpen(wo.ptr);
     if (!nxt) { timer.stop(); setPhase("finish"); return; }
     const nex = wo.day.ex[nxt.ei]; const ss = ex[7] && ex[7] === nex[7] && nxt.ei !== wo.ptr.ei; const nsg = wo.suggestions[nex[0]]; const nsv = wo.savedSet(nex[0], nxt.si); const nbw = wo.isBW(nex[0]);
     const isNextWu = nxt.wu !== undefined;
     setNextText(isNextWu ? `Warm-up ${nxt.wu + 1}: ${nex[1]}` : `${ss ? "Superset → " : "Next: "}${nex[1]} · set ${nxt.si + 1} of ${nex[2]}`);
-    const nw = isNextWu ? nxt.w : (nsv ? nsv.w : nsg.w); const pl = plateLine(nex[0], nw);
-    setNextMeta({guide: nex[6], img: exImg(nex[0]), plates: pl, target: {w: nbw ? "BW" : `${nw} lb`, r: isNextWu ? nxt.r : (nsv ? nsv.r : (nsg.reps[nxt.si] ?? "max")), label: TIMED.has(nex[0]) ? "Seconds" : "Reps"}}); setNextPtr(nxt); nextRef.current = nxt; prime(); timer.start(wo.restFor(key, wo.isLastInSeq(wo.ptr) || (wo.nextInSeq(wo.ptr).ei !== wo.ptr.ei && !ss), wo.ptr, nxt)); setPhase("rest");
+    const nlt = isNextWu ? null : wo.target(nex[0], nxt.si, just);
+    const nw = isNextWu ? nxt.w : (nsv ? nsv.w : nlt.w); const pl = plateLine(nex[0], nw);
+    setNextMeta({guide: nex[6], img: exImg(nex[0]), plates: pl, target: {w: nbw ? "BW" : `${nw} lb`, r: isNextWu ? nxt.r : (nsv ? nsv.r : (nlt.r ?? "max")), label: TIMED.has(nex[0]) ? "Seconds" : "Reps"}}); setNextPtr(nxt); nextRef.current = nxt; prime(); timer.start(wo.restFor(key, wo.isLastInSeq(wo.ptr) || (wo.nextInSeq(wo.ptr).ei !== wo.ptr.ei && !ss), wo.ptr, nxt)); setPhase("rest");
   };
   const advance = () => { timer.stop(); nextRef.current = null; if (nextPtr) wo.setPtr(nextPtr); setPhase("set"); };
   const prev = () => { timer.stop(); nextRef.current = null; wo.setPtr(wo.prevInSeq(wo.ptr)); setPhase("set"); };
@@ -95,7 +98,7 @@ export function FocusMode({ data, wo, onBack, onHome }){
               <div className="muted" style={{fontSize:".85rem"}}>{g && <><a href={g} target="_blank" rel="noopener">guide</a> · </>}<button className="linkbtn" onClick={() => setSwapOpen(true)}>swap</button> · <button className="linkbtn" onClick={() => setNoteOpen(o => !o)}>{data.notes[key] ? "note" : "add note"}</button></div>
               {data.notes[key] && !noteOpen && <div className="exnote" onClick={() => setNoteOpen(true)}>{data.notes[key]}</div>}
               {noteOpen && <div className="exnote-edit"><textarea value={noteText} placeholder="Seat height, grip, cues… shows every time this lift comes up" onChange={e => setNoteText(e.target.value)}/><div className="rowi" style={{margin:"6px 0 0", gap:8}}><Pill className="mini" onClick={async () => { try { await data.api.saveNote(key, noteText.trim()); } catch (e) {} setNoteOpen(false); }}>Save note</Pill><Pill ghost className="mini" onClick={() => setNoteOpen(false)}>Cancel</Pill></div></div>}
-              <div className="why">{(sv ? `Logged ${bw ? sv.r + " reps" : sv.w + " × " + sv.r}. ` : "") + sg.why}</div>
+              <div className="why">{(sv ? `Logged ${bw ? sv.r + " reps" : sv.w + " × " + sv.r}. ` : "") + (lt && lt.note ? lt.note : sg.why)}</div>
             </div>
             <div className="bigs">
               <BigInput id="f-w" label="Weight lb" value={bw ? "" : w} onChange={setW} step={5} disabled={bw} placeholder={bw ? "BW" : ""}/>

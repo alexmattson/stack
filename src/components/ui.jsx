@@ -135,15 +135,27 @@ const sounds = () => SOUNDS || (SOUNDS = {
     {f:1, at:0, dur:.03, vol:.35, type:"noise"},
   ]),
 });
+// How rest sounds behave next to whatever else is playing on the phone (iOS Audio Session API, Safari 17+):
+//  cut  → "playback": heard even with the silent switch on, but pauses music while a sound plays; we release the
+//          session right after each sound so the music comes back.
+//  mix  → "transient": plays over (ducks) music without stopping it, but the silent switch mutes it.
+export const SOUND_MODES = [["cut", "Cut through"], ["mix", "Over music"]];
+export const getSoundMode = () => { try { return localStorage.getItem("stack.sound") === "mix" ? "mix" : "cut"; } catch (e) { return "cut"; } };
+export const setSoundMode = m => { try { localStorage.setItem("stack.sound", m); } catch (e) {} };
+const session = type => { try { if (navigator.audioSession) navigator.audioSession.type = type; } catch (e) {} };
 export function useBeep(){
-  const el = React.useRef(null);
-  const get = () => { if (!el.current) { const a = new Audio(); a.setAttribute("playsinline", ""); a.preload = "auto"; el.current = a; } return el.current; };
-  const play = src => { try { const a = get(); a.src = src; a.currentTime = 0; const p = a.play(); if (p && p.catch) p.catch(() => {}); } catch (e) {} };
-  // Must run inside a tap: unlocks the element so later plays work without a gesture, even from the silent switch.
-  const prime = () => { try { sounds(); play(sounds().silent); } catch (e) {} };
+  const el = React.useRef(null); const release = React.useRef(null);
+  const get = () => { if (!el.current) { const a = new Audio(); a.setAttribute("playsinline", ""); a.preload = "auto";
+    // when a sound finishes, hand the audio session back so the music resumes
+    a.addEventListener("ended", () => { clearTimeout(release.current); release.current = setTimeout(() => { try { a.removeAttribute("src"); a.load(); } catch (e) {} session("ambient"); }, 150); });
+    el.current = a; } return el.current; };
+  const play = (src, type) => { try { clearTimeout(release.current); session(type); const a = get(); a.src = src; a.currentTime = 0; const p = a.play(); if (p && p.catch) p.catch(() => {}); } catch (e) {} };
+  const live = () => getSoundMode() === "cut" ? "playback" : "transient";
+  // Must run inside a tap: unlocks the element so later plays work without a gesture. Ambient, so it never touches the music.
+  const prime = () => { try { sounds(); play(sounds().silent, "ambient"); } catch (e) {} };
   // one short tick per second for the last ten seconds
-  const tick = n => { try { if (navigator.vibrate) navigator.vibrate(30); } catch (e) {} play(n <= 3 ? sounds().tickHi : sounds().tick); };
+  const tick = n => { try { if (navigator.vibrate) navigator.vibrate(30); } catch (e) {} play(n <= 3 ? sounds().tickHi : sounds().tick, live()); };
   // "go": a rising three-note chime, clearly different from the ticks
-  const beep = () => { try { if (navigator.vibrate) navigator.vibrate([250, 80, 250, 80, 400]); } catch (e) {} play(sounds().go); };
+  const beep = () => { try { if (navigator.vibrate) navigator.vibrate([250, 80, 250, 80, 400]); } catch (e) {} play(sounds().go, live()); };
   return { prime, beep, tick };
 }

@@ -330,15 +330,25 @@ export function ladder(equip, gear){
 // Stored session plans are rows of objects (Firestore forbids nested arrays); in code they are arrays.
 export const planToStore = ex => ex.map(e => Array.isArray(e) ? {key:e[0], name:e[1], sets:e[2], reps:e[3], w:e[4], q:e[5], g:e[6], pair:e[7] || null} : e);
 export const planFromStore = pl => (pl || []).map(e => Array.isArray(e) ? e : [e.key, e.name, e.sets, e.reps, e.w, e.q, e.g, e.pair || null]);
-// Alternatives for a swap: same muscle group, usable with this gear, not already in the day.
+const haveSet = gear => { const have = new Set(gear.equipment || []); if (gear.bar) have.add("bar"); if (gear.bench && gear.bench !== "none") have.add("bench"); if (gear.bench === "incline") have.add("incline"); if (!have.has("bench")) have.delete("incline"); return have; };
+// Can this lift be done with this gear?
+export function canDo(key, gear){
+  const x = LIB_BY_KEY[key]; if (!x) return true; const have = haveSet(gear);
+  return x.needs.every(n => have.has(n)) && (x.bw || (x.equip === "db" ? (have.has("dumbbells") && gear.dumbbells.length > 0) : x.equip === "kb" ? (have.has("kettlebell") && (gear.kettlebells||[]).length > 0) : true));
+}
+// Alternatives for a swap, best first: same movement pattern, then same muscle group, then the same muscle;
+// compounds replace compounds. Variants made redundant by your gear (floor press when you own a bench) are left out.
 export function alternatives(key, gear, dayKeys){
   const e = LIB_BY_KEY[key]; if (!e) return [];
-  const have = new Set(gear.equipment || []); if (gear.bar) have.add("bar"); if (gear.bench && gear.bench !== "none") have.add("bench"); if (gear.bench === "incline") have.add("incline");
-  const ok = x => x.needs.every(n => have.has(n)) && (x.bw || (x.equip === "db" ? (have.has("dumbbells") && gear.dumbbells.length > 0) : x.equip === "kb" ? (have.has("kettlebell") && (gear.kettlebells||[]).length > 0) : true));
-  const muscle = MUSCLE[e.group];
-  const same = LIB.filter(x => x.key !== key && ok(x) && !dayKeys.includes(x.key) && x.group === e.group);
-  const near = LIB.filter(x => x.key !== key && ok(x) && !dayKeys.includes(x.key) && x.group !== e.group && MUSCLE[x.group] === muscle && x.kind === e.kind);
-  return [...same.sort((a, b) => a.pri - b.pri), ...near.sort((a, b) => a.pri - b.pri)];
+  const have = haveSet(gear);
+  const ok = x => x.key !== key && !dayKeys.includes(x.key) && canDo(x.key, gear) && !x.unless.some(n => have.has(n));
+  const muscle = MUSCLE[e.group], pat = PATTERN[key];
+  const rank = x => (pat && PATTERN[x.key] === pat ? 0 : x.group === e.group ? 1 : 2) * 10 + (x.kind === e.kind ? 0 : 5) + (x.bw && !e.bw ? 4 : 0) + x.pri / 10;
+  const pool = LIB.filter(x => ok(x) && MUSCLE[x.group] === muscle && (e.kind === "iso" || x.kind === "compound" || x.group === e.group));
+  const list = pool.sort((a, b) => rank(a) - rank(b));
+  // keep it to a handful; isolation fallbacks only when there is little else
+  const comp = list.filter(x => x.kind === e.kind), other = list.filter(x => x.kind !== e.kind);
+  return [...comp, ...(comp.length < 4 ? other : [])].slice(0, 8);
 }
 export function rowFor(x, gear, prog){
   const rep = {size:{compound:"8–12", iso:"12–15"}, strength:{compound:"5–8", iso:"8–12"}, endurance:{compound:"12–15", iso:"15–20"}}[prog.goal || "size"];

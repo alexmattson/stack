@@ -120,3 +120,15 @@ test("progression reads per-set effort and misses", () => {
   // top of range everywhere but a max-effort set → one step up, not two
   const t = r([{w:35,r:12,e:1},{w:35,r:12,e:1},{w:35,r:12,e:1},{w:35,r:12,e:3}]); assert.equal(t.w, 40);
 });
+test("swaps: a compound offers compounds of the same pattern first, weighted before bodyweight", () => {
+  const a = alternatives("dip", g50, ["dip"]);
+  assert.ok(a.length >= 3 && a.length <= 8);
+  assert.ok(a.every(x => ["chest","chest_upper"].includes(x.group)), a.map(x => x.key).join(","));
+  assert.equal(a[0].key, "flat_press");
+  assert.ok(a.every(x => x.kind === "compound"));
+});
+test("a mid-session weight drop carries into the next session", () => {
+  const ex = ["flat_press","Flat",4,"8–12",35,"",""];
+  const s = suggest(ex, [{date:"2026-10-20", sets:{flat_press:[{w:40,r:3,t:8},{w:35,r:8,t:8},{w:35,r:8,t:8},{w:35,r:7,t:8}]}}], g50);
+  assert.equal(s.w, 35); assert.deepEqual(s.reps, [9,9,7,8]);
+});

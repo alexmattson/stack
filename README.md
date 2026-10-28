@@ -109,6 +109,8 @@ Turn any exercise off on the Exercises page and the next-best option takes its s
 | Top of the range on every set | Next weight you own, reps reset to the bottom (two steps if you rated it all Easy) |
 | Otherwise, set by set | Easy → +2 reps, Hard → +1, Max → hold; a set that missed its target holds too |
 | Under the bottom of the range on two sets | Drop one weight step and rebuild |
+
+Inside a session the targets move too: miss a set by 3+ reps and the next set drops a weight step with reps back to the bottom of the range; miss by 1–2 and the next set asks for what you just got. The next session then starts from the weight most of your sets were done at.
 | Reps fell 4+ from set one to the last set | Same targets, rest 2–3 minutes |
 | Three sessions at one weight, no rep gain | Drop one step, own the top of the range, climb back |
 | Maxed out your heaviest weight | Add reps, slow the lowering, buy heavier |

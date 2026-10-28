@@ -44,8 +44,10 @@ export function suggest(ex, sessions, gear, ctx = {}){
   }
 
   if (!hist.length) return {w:startW, reps:fill(range.lo), why:`Starting point: ${startW} lb for ${range.lo} reps. Rate the set Easy if you had 4+ left and the next target jumps.`};
-  const last = hist[0];
-  const lastW = Math.max(...last.sets.map(s => s.w || 0));
+  // The weight a session "was" is the one most sets were done at (a mid-session drop counts; a first-set miss doesn't).
+  const domW = h => { const c = {}; let best = 0, bw = 0; h.sets.forEach(s => { const w = s.w || 0; c[w] = (c[w] || 0) + 1; if (c[w] >= best) { best = c[w]; bw = w; } }); return bw; };
+  const last = {...hist[0], sets: hist[0].sets.filter(s => (s.w || 0) === domW(hist[0]))};
+  const lastW = domW(hist[0]);
   const lastReps = last.sets.map(s => s.r);
   const effort = effortOf(last.sets);
   if (ctx.deload) return {w:lastW, reps:fill(range.lo), why:`Deload week: ${lastW} lb for ${range.lo}, half the sets. Move well, leave plenty in the tank.`};
@@ -53,7 +55,7 @@ export function suggest(ex, sessions, gear, ctx = {}){
   const totalReps = r => r.reduce((a, b) => a + b, 0);
   const allHitTop = lastReps.length >= n && lastReps.every(r => r >= range.hi);
   const fatigue = lastReps.length > 1 && (lastReps[0] - lastReps[lastReps.length - 1]) >= 4;
-  const prevSame = hist.filter(h => Math.max(...h.sets.map(s => s.w || 0)) === lastW);
+  const prevSame = hist.filter(h => domW(h) === lastW);
   const stalled = prevSame.length >= 3 &&
     totalReps(prevSame[0].sets.map(s => s.r)) <= totalReps(prevSame[1].sets.map(s => s.r)) &&
     totalReps(prevSame[1].sets.map(s => s.r)) <= totalReps(prevSame[2].sets.map(s => s.r));

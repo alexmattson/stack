@@ -2,7 +2,8 @@ import { useMemo, useState, useCallback, useEffect } from "react";
 import { suggest } from "../lib/progression.js";
 import { alternatives, rowFor } from "../lib/program.js";
 import { warmupPlan } from "../lib/warmup.js";
-import { planFromStore, BODYWEIGHT_EX, LIB_BY_KEY } from "../lib/program.js";
+import { planFromStore, BODYWEIGHT_EX, LIB_BY_KEY, ladder } from "../lib/program.js";
+import { parseRange } from "../lib/progression.js";
 import { COMPOUND } from "../lib/program.js";
 import { REST } from "../lib/progression.js";
 import { cycleInfo, deloadSets } from "../lib/cycle.js";
@@ -28,7 +29,9 @@ export function useWorkout(data, date, dayIdx){
   const total = day.ex.reduce((a, e) => a + e[2], 0);
   const savedSet = useCallback((key, i) => session && session.sets[key] && session.sets[key][i] && session.sets[key][i].r ? session.sets[key][i] : null, [session]);
   const doneCount = session ? Object.values(session.sets).reduce((a, arr) => a + arr.filter(x => x.r).length, 0) : 0;
-  const suggestions = useMemo(() => Object.fromEntries(day.ex.map(e => [e[0], suggest(e, sessions, data.gear, {deload:isDeload, readiness: date === data.today ? data.readiness.level : "unknown"})])), [day, sessions, data.gear, isDeload, date, data.today, data.readiness.level]);
+  // Targets come from past sessions only; today's half-logged session must not become "last time" mid-workout.
+  const past = useMemo(() => sessions.filter(s => s.id !== id && s.date < date), [sessions, id, date]);
+  const suggestions = useMemo(() => Object.fromEntries(day.ex.map(e => [e[0], suggest(e, past, data.gear, {deload:isDeload, readiness: date === data.today ? data.readiness.level : "unknown"})])), [day, past, data.gear, isDeload, date, data.today, data.readiness.level]);
   // Warm-up steps done this visit (they aren't logged).
   const [doneWu, setDoneWu] = useState(() => new Set());
   const markWu = p => setDoneWu(s => new Set([...s, p.gen ? "gen" : `${p.ei}-${p.wu}`]));
@@ -60,7 +63,23 @@ export function useWorkout(data, date, dayIdx){
   const restFor = (key, isLast, from, nxt) => { if (from && nxt && day.ex[from.ei][7] && day.ex[from.ei][7] === day.ex[nxt.ei][7] && from.ei !== nxt.ei) return REST.superset; return isLast ? REST.last : COMPOUND.has(key) ? REST.compound : REST.iso; };
   const swap = (oldKey, alt) => api.swapExercise(id, date, dayIdx, oldKey, rowFor(alt, data.gear, data.prog));
   const alts = key => alternatives(key, data.gear, day.ex.map(e => e[0]));
-  const save = async (key, i, w, r, e) => { const pr = detectPR(data.prs, key, w, r); const t = (suggestions[key] && suggestions[key].reps[i]) || null; await api.saveSet(id, date, dayIdx, key, i, w, r, e, t); return pr; };
+  // Target for a set *right now*, adjusted by how the earlier sets of this lift went today.
+  // Missed the last set by 3+ reps (or fell under the range by 2+): drop a weight step, reps back to the bottom.
+  // Missed by 1–2: same weight, aim for what you just got. Otherwise the session plan stands.
+  // `just` = a set logged this instant that state may not show yet: {i, w, r, t}.
+  const target = useCallback((key, si, just) => { const sg = suggestions[key]; const row = day.ex.find(e => e[0] === key); const base = {w:sg.w, r:sg.reps[si] ?? null, note:null};
+    if (!row || si === 0 || BODYWEIGHT_EX.has(key)) return base;
+    const range = parseRange(row[3]); if (!range) return base;
+    const at = k => (just && just.i === k) ? just : savedSet(key, k);
+    let prev = null, pi = -1; for (let k = si - 1; k >= 0; k--) { const s = at(k); if (s && s.r) { prev = s; pi = k; break; } }
+    if (!prev) return base;
+    const reduced = prev.w < sg.w;
+    const planned = prev.t || (reduced ? range.lo : (sg.reps[pi] ?? range.lo)); const miss = planned - prev.r;
+    if (miss >= 3 || prev.r <= range.lo - 2) { const lad = ladder((LIB_BY_KEY[key] || {}).equip, data.gear); const w = lad.prev(prev.w); if (w && w < prev.w) return {w, r:range.lo, note:`Set ${pi + 1} came in at ${prev.r} against ${planned}. Drop to ${w} lb and own ${range.lo}.`}; return {w:prev.w, r:range.lo, note:`Set ${pi + 1} came in at ${prev.r} against ${planned}. Same weight, aim for ${range.lo}.`}; }
+    if (miss > 0) return {w:prev.w, r:prev.r, note:`Set ${pi + 1} was ${prev.r}, not ${planned}. Match ${prev.r} this set.`};
+    if (reduced) return {w:prev.w, r:Math.min(range.hi, Math.max(range.lo, prev.r)), note:`Staying at ${prev.w} lb after set ${pi + 1}.`};
+    return base; }, [suggestions, day, savedSet, data.gear]);
+  const save = async (key, i, w, r, e) => { const pr = detectPR(data.prs, key, w, r); const t = target(key, i).r || null; await api.saveSet(id, date, dayIdx, key, i, w, r, e, t); return pr; };
   const finish = (pending, note) => api.finish(id, date, dayIdx, pending, note);
-  return { id, date, session, day, total, doneCount, savedSet, nextOpen, ptr, setPtr, flatIndex, suggestions, restFor, save, finish, isBW: key => BODYWEIGHT_EX.has(key), isDeload, cycle:cyc, sequence, seqIndex, prevInSeq, nextInSeq, isLastInSeq, swap, alts, markWu, isOpen, workingIndex, warmupPlan: () => warmupPlan(day, suggestions, data.gear, savedSet) };
+  return { id, date, session, day, total, doneCount, savedSet, nextOpen, ptr, setPtr, flatIndex, suggestions, restFor, save, finish, isBW: key => BODYWEIGHT_EX.has(key), isDeload, cycle:cyc, sequence, seqIndex, prevInSeq, nextInSeq, isLastInSeq, swap, alts, markWu, isOpen, workingIndex, target, warmupPlan: () => warmupPlan(day, suggestions, data.gear, savedSet) };
 }

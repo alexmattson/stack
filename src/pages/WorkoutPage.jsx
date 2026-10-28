@@ -55,8 +55,9 @@ function NowCardUnused({ wo, w, r, setW, setR, onDone, status, timer, nextText, 
 const SetRow = ({ ex, i, wo, draft, setDraft, onSave, current }) => {
   const [key, name] = ex; const bw = wo.isBW(key); const sg = wo.suggestions[key]; const sv = wo.savedSet(key, i);
   const dw = draft[`${key}_${i}_w`], dr = draft[`${key}_${i}_r`];
-  const wVal = bw ? "" : (dw !== undefined ? dw : sv ? sv.w : sg.w);
-  const rVal = dr !== undefined ? dr : sv ? sv.r : (sg.reps[i] ?? "");
+  const lt = wo.target(key, i);
+  const wVal = bw ? "" : (dw !== undefined ? dw : sv ? sv.w : lt.w);
+  const rVal = dr !== undefined ? dr : sv ? sv.r : (lt.r ?? "");
   const done = sv && (bw || +wVal === sv.w) && +rVal === sv.r;
   return (
     <div className={`setrow ${current ? "cur" : ""}`}>
@@ -98,7 +99,7 @@ export function WorkoutPage({ data, wo, date, onBack, onFocus }){
   const { prime, beep, tick } = useBeep();
   const timer = useRestTimer(beep, tick);
   const cur = wo.day.ex[wo.ptr.ei];
-  useEffect(() => { if (!cur) return; const [key] = cur; const sg = wo.suggestions[key]; const sv = wo.savedSet(key, wo.ptr.si); setW(wo.isBW(key) ? "" : String(sv ? sv.w : sg.w)); setR(String(sv ? sv.r : (sg.reps[wo.ptr.si] ?? ""))); }, [wo.ptr, wo.id]); // eslint-disable-line
+  useEffect(() => { if (!cur) return; const [key] = cur; const sg = wo.target(key, wo.ptr.si); const sv = wo.savedSet(key, wo.ptr.si); setW(wo.isBW(key) ? "" : String(sv ? sv.w : sg.w)); setR(String(sv ? sv.r : (sg.r ?? ""))); }, [wo.ptr, wo.id]); // eslint-disable-line
   useEffect(() => { setDraft({}); timer.stop(); setNote(wo.session?.note || ""); }, [wo.id]); // eslint-disable-line
 
   const startRest = (key, isLast, nxt, from) => { const nex = wo.day.ex[nxt.ei]; setNextText(`Next: ${nex[1]} · set ${nxt.si + 1} of ${nex[2]}`); prime(); timer.start(wo.restFor(key, isLast, from, nxt)); };

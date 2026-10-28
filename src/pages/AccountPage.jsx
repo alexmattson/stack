@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { PageHeader, BackButton, Card, Pill, RowCard, IconBubble, Icon, Logo, Status, useStatus, useBeep, IMG } from "../components/ui.jsx";
+import { PageHeader, BackButton, Card, Pill, RowCard, IconBubble, Icon, Logo, Status, useStatus, useBeep, IMG, Segmented, SOUND_MODES, getSoundMode, setSoundMode } from "../components/ui.jsx";
 import { DOW, today } from "../lib/dates.js";
 import SEED from "../seed.json";
 
@@ -7,7 +7,7 @@ export function AccountPage({ data, auth, onBack, onManage, go, onReplayOnboardi
   const { sessions, bodylog, gear, prog, trainingDays, api } = data;
   const u = auth.user; const g = u && !u.isAnonymous; const [st, setSt] = useStatus();
   const dbs = gear.dumbbells.slice().sort((a, b) => a - b);
-  const snd = useBeep();
+  const snd = useBeep(); const [soundMode, setSM] = useState(getSoundMode());
   const exportData = () => { const blob = new Blob([JSON.stringify({exportedAt:new Date().toISOString(), sessions, bodylog, settings:{schedule:{trainingDays}, equipment:gear, program:prog}}, null, 2)], {type:"application/json"}); const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = `stack-export-${today()}.json`; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000); };
   const importSeed = async () => { try { await api.importSeed(SEED); setSt(`Imported ${Object.keys(SEED.sessions || {}).length} session(s) and your settings.`, true); } catch (e) { setSt("Import failed: " + e.message); } };
   return (
@@ -26,6 +26,12 @@ export function AccountPage({ data, auth, onBack, onManage, go, onReplayOnboardi
         {sessions.length === 0 && <RowCard icon={<IconBubble name="upload"/>} title="Import old log" sub="Bring in the workout from the first version of the app." right={<Pill ghost style={{padding:"9px 14px"}} onClick={importSeed}>Import</Pill>}/>}
         <Status text={st.text} ok={st.ok}/>
       </Card>
+      <h2>Rest sounds</h2>
+      <Card style={{display:"grid", gap:10}}>
+        <Segmented value={soundMode} options={SOUND_MODES} onChange={m => { setSoundMode(m); setSM(m); }}/>
+        <small className="muted">{soundMode === "cut" ? "Plays even with the silent switch on. Music pauses for the ticks and the whistle, then comes back." : "Plays over your music without stopping it. The silent switch mutes it, so keep the switch off."}</small>
+        <RowCard icon={<IconBubble name="flame"/>} title="Test" sub="Three ticks, then the whistle." right={<Pill ghost style={{padding:"9px 14px"}} onClick={() => { snd.prime(); setTimeout(() => snd.tick(10), 150); setTimeout(() => snd.tick(2), 1150); setTimeout(() => snd.tick(1), 2150); setTimeout(() => snd.beep(), 3150); }}>Play</Pill>}/>
+      </Card>
       <h2>Training</h2>
       <Card style={{display:"grid", gap:10}}>
         <RowCard icon={<IconBubble name="cal"/>} title="Training days" sub={trainingDays.length ? trainingDays.map(d => DOW[d]).join(", ") : "None set"} right={<Pill ghost style={{padding:"9px 14px"}} onClick={() => go("schedule")}>Edit</Pill>}/>
@@ -37,7 +43,6 @@ export function AccountPage({ data, auth, onBack, onManage, go, onReplayOnboardi
         <h2>Admin</h2>
         <Card style={{display:"grid", gap:10}}>
           <RowCard icon={<IconBubble name="bolt"/>} title="Run onboarding" sub="Walk the first-time flow again. Finishing it overwrites your goals, schedule and equipment; Exit keeps everything." right={<Pill ghost style={{padding:"9px 14px"}} onClick={onReplayOnboarding}>Start</Pill>}/>
-          <RowCard icon={<IconBubble name="flame"/>} title="Test rest sounds" sub="Three ticks, then the end-of-rest chime. Try it with the silent switch on." right={<Pill ghost style={{padding:"9px 14px"}} onClick={() => { snd.prime(); setTimeout(() => snd.tick(10), 150); setTimeout(() => snd.tick(2), 1150); setTimeout(() => snd.tick(1), 2150); setTimeout(() => snd.beep(), 3150); }}>Play</Pill>}/>
           <RowCard icon={<IconBubble name="user"/>} title="Admin account" sub={data.isAdmin ? `${u.email || "this account"} · isAdmin set in Firestore` : `${u.email} · listed in the app`}/>
         </Card>
       </>}
