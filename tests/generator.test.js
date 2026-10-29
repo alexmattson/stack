@@ -132,3 +132,11 @@ test("a mid-session weight drop carries into the next session", () => {
   const s = suggest(ex, [{date:"2026-10-20", sets:{flat_press:[{w:40,r:3,t:8},{w:35,r:8,t:8},{w:35,r:8,t:8},{w:35,r:7,t:8}]}}], g50);
   assert.equal(s.w, 35); assert.deepEqual(s.reps, [9,9,7,8]);
 });
+test("no two adjacent lifts share both movement pattern and muscle group", () => {
+  const gears = [g50, normalizeGear({...GEAR_DEFAULTS, bar:false, equipment:["dumbbells","bench"]}), normalizeGear({...GEAR_DEFAULTS, equipment:["dumbbells","bench","bar","barbell","rack"]}), normalizeGear({equipment:[], dumbbells:[], bench:"none", bar:false})];
+  for (const g of gears) for (const focus of [["upper","core"], ["upper","lower","core"], ["lower"]]) for (const days of [[1,2,4,5], [1,3,5], [0,1,2,3,4,5]]) {
+    const p = buildProgram({gear:g, prog:{...PROGRAM_DEFAULTS, focus}, trainingDays:days});
+    for (const d of p) for (let k = 1; k < d.ex.length; k++) { const a = d.ex[k - 1][0], b = d.ex[k][0]; const pa = patternOf(a), pb = patternOf(b);
+      assert.ok(!(pa && pa === pb && LIB.find(x => x.key === a).group === LIB.find(x => x.key === b).group), `${d.name}: ${a} then ${b}`); }
+  }
+});

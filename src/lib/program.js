@@ -241,11 +241,12 @@ export function buildProgram(opts){
   const rot = e => { if (block <= 1 || e.pri === 0) return 0; let h = block; for (const ch of e.key) h = (h * 31 + ch.charCodeAt(0)) % 97; return h % 2 ? -1.5 : 0; };
   // Variety within a day: a lift whose movement pattern is already in the day scores 3 worse per repeat,
   // so the third "back" slot becomes a pullover or rear-delt move rather than a third row.
-  const patternsToday = usedToday => { const c = {}; for (const k of usedToday) { const p = PATTERN[k]; if (p) c[p] = (c[p] || 0) + 1; } return c; };
+  // A repeat of a pattern costs 3; a repeat of the same pattern *and* muscle group (one-arm row after bent-over row) costs 6.
+  const patternsToday = usedToday => { const c = {}; for (const k of usedToday) { const p = PATTERN[k]; if (p) { c[p] = (c[p] || 0) + 1; c[p + "/" + LIB_BY_KEY[k].group] = (c[p + "/" + LIB_BY_KEY[k].group] || 0) + 1; } } return c; };
   const pick = (groups, usedToday, slot = 9) => {
     const pt = patternsToday(usedToday);
     // the first two slots of a day should be compounds when any exist for the group
-    const score = e => e.pri + rot(e) + (usedCount[e.key]||0)*2 + (PATTERN[e.key] ? (pt[PATTERN[e.key]] || 0) * 3 : 0) + (slot < 2 && e.kind !== "compound" ? 4 : 0);
+    const score = e => e.pri + rot(e) + (usedCount[e.key]||0)*2 + (PATTERN[e.key] ? (pt[PATTERN[e.key]] || 0) * 3 + (pt[PATTERN[e.key] + "/" + e.group] || 0) * 3 : 0) + (slot < 2 && e.kind !== "compound" ? 4 : 0);
     // all of the slot's groups compete, earlier groups with a small head start
     const cands = groups.flatMap((g, gi) => LIB.filter(e => e.group === g && ok(e) && !usedToday.has(e.key)).map(e => [score(e) + gi * 0.5, e])).sort((a, b) => a[0] - b[0]);
     return cands.length ? cands[0][1] : null;
@@ -257,6 +258,8 @@ export function buildProgram(opts){
     if (d.core && (days <= 2 || i % 2 === 1 || days === 3)) {           // core finisher on every other day (every day when 2–3 days)
       for (const slot of T.core) { const e = pick(slot, usedToday); if (e) { usedToday.add(e.key); usedCount[e.key] = (usedCount[e.key]||0) + 1; coreEx.push(e); } }
     }
+    // never two lifts of the same movement pattern back to back when something else can sit between them
+    for (let k = 1; k < ex.length; k++) { const p = PATTERN[ex[k].key]; if (p && PATTERN[ex[k - 1].key] === p) { const j = ex.findIndex((x, m) => m > k && PATTERN[x.key] !== p); if (j > 0) { const [moved] = ex.splice(j, 1); ex.splice(k, 0, moved); } } }
     const meta = DAY_META[d.kind];
     return {key:"d"+(i+1), name:meta.name, focus:meta.focus + (coreEx.length ? " · Abs" : ""), ex:[...ex.map(e => toRow(e)), ...coreEx.map(e => toRow(e, 2))]};
   });
