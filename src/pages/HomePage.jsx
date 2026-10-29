@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { PageHeader, Logo, Card, Pill, Icon, IconBubble, IMG, Ring, WeekBadge, GymSwitcher } from "../components/ui.jsx";
 import { DOW, today, addDays, fmtDate, weekStart, greeting, weekNumber } from "../lib/dates.js";
-import { buildPlan, sessionFor, sessionSetCount, sessionTotal, sessionComplete, plannedDayFor } from "../lib/plan.js";
+import { buildPlanRange, sessionFor, sessionSetCount, sessionTotal, sessionComplete, plannedDayFor } from "../lib/plan.js";
 import { strengthSummary } from "../lib/progression.js";
 import { planFromStore } from "../lib/program.js";
 import { MUSCLES, MUSCLE_LABEL } from "../lib/volume.js";
@@ -58,7 +58,7 @@ export function HomePage({ data, onOpenWorkout }){
   const { sessions, bodylog, program, trainingDays } = data;
   const t = today();
   const [sel, setSel] = useState(t);
-  const d = new Date(); const plan = buildPlan(d.getFullYear(), d.getMonth(), sessions, program, trainingDays);
+  const plan = buildPlanRange(addDays(t, -3), addDays(t, 14), sessions, program, trainingDays);   // the strip plus the next two weeks (for "Next: …")
   const cur = sessionFor(sessions, sel); const p = plan[sel] || {};
   const ni = cur ? Math.max(0, program.findIndex(x => x.key === cur.day)) : plannedDayFor(sel, sessions, program, trainingDays);
   const dayP = cur && Array.isArray(cur.plan) && cur.plan.length ? {name:cur.planName || program[ni].name, focus:cur.planFocus || program[ni].focus, ex:planFromStore(cur.plan)} : program[ni];

@@ -16,13 +16,17 @@ export function nextDayIdx(sessions, program){
 
 // Map of date -> {kind, idx} covering the given month, projected forward from today.
 export function buildPlan(y, m, sessions, program, trainingDays){
+  return buildPlanRange(iso(new Date(y, m, 1)), iso(new Date(y, m + 1, 0)), sessions, program, trainingDays);
+}
+// Same, for any date range (the Home strip crosses month ends).
+export function buildPlanRange(fromIso, toIso, sessions, program, trainingDays){
   const map = {}, byDate = {};
   sessions.forEach(s => { (byDate[s.date] = byDate[s.date] || []).push(program.findIndex(d => d.key === s.day)); });
   const t = today();
   const firstLogged = Object.keys(byDate).sort()[0] || t;
   let idx = nextDayIdx(sessions, program);
-  const first = new Date(y, m, 1), last = new Date(y, m + 1, 0);
-  const cur = new Date(); cur.setHours(0, 0, 0, 0);
+  const first = new Date(fromIso + "T12:00:00"), last = new Date(toIso + "T12:00:00");
+  const cur = new Date(t + "T12:00:00");
   const horizonEnd = last > cur ? last : cur;
   for (let d = new Date(cur); d <= horizonEnd; d.setDate(d.getDate() + 1)) {
     const k = iso(d);
@@ -39,7 +43,7 @@ export function buildPlan(y, m, sessions, program, trainingDays){
   return map;
 }
 export function plannedDayFor(date, sessions, program, trainingDays){
-  const d = new Date(date + "T12:00:00"); const plan = buildPlan(d.getFullYear(), d.getMonth(), sessions, program, trainingDays); const p = plan[date];
+  const plan = buildPlanRange(date, date, sessions, program, trainingDays); const p = plan[date];
   return p && p.idx !== undefined && p.idx >= 0 ? p.idx : nextDayIdx(sessions, program);
 }
 export const isTrainingDate = (date, trainingDays) => trainingDays.includes(dowOf(date));

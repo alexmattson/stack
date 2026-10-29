@@ -141,3 +141,10 @@ test("no two adjacent lifts share both movement pattern and muscle group", () =>
       assert.ok(!(pa && pa === pb && LIB.find(x => x.key === a).group === LIB.find(x => x.key === b).group), `${d.name}: ${a} then ${b}`); }
   }
 });
+test("the planned-day projection crosses month ends (Home strip vs Schedule agree)", async () => {
+  const { buildPlanRange, buildPlan } = await import("../src/lib/plan.js"); const { today, addDays } = await import("../src/lib/dates.js");
+  const p = buildProgram({gear:g50, prog:PROGRAM_DEFAULTS, trainingDays:[1,2,4,5]}); const t = today();
+  const strip = buildPlanRange(addDays(t, -3), addDays(t, 40), [], p, [1,2,4,5]);
+  for (let i = 0; i <= 40; i++) { const k = addDays(t, i); const d = new Date(k + "T12:00:00"); const month = buildPlan(d.getFullYear(), d.getMonth(), [], p, [1,2,4,5]);
+    assert.equal(strip[k].kind, month[k].kind, k); if (strip[k].kind === "plan") assert.equal(strip[k].idx, month[k].idx, k); }
+});
