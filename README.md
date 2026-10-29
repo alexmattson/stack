@@ -88,14 +88,16 @@ Everything a workout needs is decided before you start: which lifts, how many se
 
 `src/lib/program.js` holds a library of ~120 movements (about 45 of them bodyweight and isometric, so the app works with no equipment at all), each tagged with muscle group, region (push / pull / legs / core), type (compound / isolation), what equipment it needs, and a starting weight for a 150 lb lifter.
 
-Building a program:
+Building a program (`src/lib/split.js` plans the week, `program.js` fills it with lifts):
 
-1. **Pick the split** from your training-day count and focus. Upper only, 4 days → push/pull ×2. Upper + lower, 4 days → upper/lower. 6 days with everything → push/pull/legs ×2. 2–3 days → full body. Lower only → Lower A/B. Core only → core days.
-2. **Fill each day from a slot template**, compounds first, so a 30-minute session drops isolation work rather than the main lifts.
-3. **Choose the best movement per slot** from what you own, with floor variants when there's no bench, rows instead of chin-ups when there's no bar, barbell lifts when there's a bar and rack. Choices vary across the week so Day 3 isn't a copy of Day 1.
-4. **Set rep ranges from the goal**: strength 5–8, size 8–12, endurance 12–20.
-5. **Scale starting weights** by bodyweight and experience, then snap them to weights you actually have.
-6. **Add core finishers** to alternate days when Core is selected.
+1. **Weekly hard sets per muscle** come from the goal and your level: muscle-building ≈ 10 / 14 / 18 sets a week for new / some / experienced lifters on the big muscles, scaled down for arms, calves and core; strength runs lighter on accessories and heavier on the main lifts. Compounds credit their synergists fractionally (bench counts 0.3 of a set for triceps, rows 0.3 for biceps, hinges 0.5 for glutes), so direct arm work shrinks rather than doubling up.
+2. **Each muscle is trained twice a week** (three times for strength), at most 6 / 8 / 10 direct sets a session, and never on back-to-back days when the calendar allows. The day types fall out of the day count and focus: full body at 1–3 days, upper/lower at 4, upper/lower + push/pull/legs at 5, push/pull/legs ×2 at 6 (upper/lower ×3 for strength); push/pull for an upper-only week, quad/hip days for a lower-only one. Each day type lists its muscles in session order, with A/B variants that swap the lead (squat-led vs hinge-led, press-led vs pull-led).
+3. **Lifts fill the plan from what you own**: one lift per muscle, with spare slots going to the muscles with the most sets, compounds first. Barbell lifts when there's a bar and rack, floor variants when there's no bench, rows instead of chin-ups when there's no pull-up bar, bodyweight and isometric moves when there's nothing. A lift that repeats a movement pattern already in the day (a second row, a second press) scores worse, so the second slot becomes a different angle, and no two lifts of the same pattern and muscle sit back to back.
+4. **Order within the session**: the day's lead muscle first, other compounds next, isolation after, calves and core last — strength gains favour whatever you do first; growth doesn't care.
+5. **Rep ranges from the goal**: strength 5–8, size 8–12, endurance 12–20. Rest: 2:30 / 1:30 for size, 3:30 / 2:00 for strength, 1:00 / 0:45 for endurance; antagonist supersets go back to back with the full rest after the pair.
+6. **Starting weights** scale with bodyweight and experience, then snap to weights you actually have.
+
+The model follows the research summary in `docs/` terms: at equal weekly volume, frequency and split type don't change growth (Schoenfeld 2019; Ramos-Campo 2024), strength favours more frequent practice and the exercises done first in a session (Pelland 2026; Nunes 2021), ≥10 sets a muscle a week with diminishing returns past ~20 (ACSM 2026; Baz-Valle 2022), 48–72 h between hard sessions for a muscle, and antagonist supersets preserving reps while same-muscle supersets don't (Zhang 2025).
 
 Turn any exercise off on the Exercises page and the next-best option takes its slot.
 

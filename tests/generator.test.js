@@ -1,13 +1,13 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { buildProgram, PROGRAM_DEFAULTS, GEAR_DEFAULTS, LIB, normalizeGear } from "../src/lib/program.js";
+import { buildProgram, PROGRAM_DEFAULTS, GEAR_DEFAULTS, LIB, LIB_BY_KEY, normalizeGear } from "../src/lib/program.js";
 import { suggest } from "../src/lib/progression.js";
 
 const g50 = GEAR_DEFAULTS;
 test("default setup reproduces a 4-day push/pull with core on pull days", () => {
   const p = buildProgram({gear:g50, prog:PROGRAM_DEFAULTS, trainingDays:[1,2,4,5]});
   assert.equal(p.length, 4); assert.deepEqual(p.map(d => d.name), ["Push","Pull","Push","Pull"]);
-  assert.ok(p[1].ex.some(e => e[0] === "wt_crunch"));
+  assert.ok(p.every(d => d.ex.some(e => LIB_BY_KEY[e[0]].region === "core")));
 });
 test("no bar removes chin-ups; barbell+rack adds barbell bench", () => {
   const a = buildProgram({gear:{...g50, bar:false, equipment:["dumbbells","bench"]}, prog:PROGRAM_DEFAULTS, trainingDays:[1,2,4,5]});
@@ -20,7 +20,7 @@ test("no equipment at all still builds a full bodyweight program with swaps", ()
   const none = normalizeGear({equipment:[], dumbbells:[], bench:"none", bar:false});
   for (const focus of [["upper","core"], ["upper","lower","core"], ["lower"], ["core"]]) {
     const p = buildProgram({gear:none, prog:{...PROGRAM_DEFAULTS, focus}, trainingDays:[1,2,4,5]});
-    assert.ok(p.every(d => d.ex.length >= 4), focus.join("+"));
+    assert.ok(p.every(d => d.ex.length >= (focus.length === 1 && focus[0] === "core" ? 3 : 4)), focus.join("+"));
     for (const d of p) for (const e of d.ex) { assert.equal(e[4], 0, e[0]); assert.ok(alternatives(e[0], none, d.ex.map(x => x[0])).every(x => x.bw), e[0]); }
   }
 });
@@ -82,12 +82,13 @@ test("no day stacks the same movement pattern more than twice; ramps only where 
   const sug = Object.fromEntries(p[0].ex.map(e => [e[0], {w:e[4]}]));
   const plan = warmupPlan(p[0], sug, g50, () => null);
   const eis = Object.keys(plan).map(Number);
-  assert.equal(eis[0], 0); assert.equal(plan[0].length, 3);                      // first lift: full ramp
+  assert.equal(eis[0], 0); assert.equal(plan[0].length, 2);                      // first lift: full ramp
   for (const ei of eis.slice(1)) assert.equal(plan[ei].length, 1);                // later lifts: one feel set
   const pats = eis.map(ei => patternOf(p[0].ex[ei][0])); assert.equal(new Set(pats).size, pats.length); // one per pattern
 });
 test("warm-ups ramp below the working weight and snap to owned weights", () => {
-  assert.deepEqual(warmups("flat_press", 40, g50).map(s => s.w), [20, 30, 35]);
+  assert.deepEqual(warmups("flat_press", 40, g50).map(s => s.w), [20, 30]);
+  assert.deepEqual(warmups("flat_press", 40, g50, true, "strength").map(s => s.w), [20, 30, 35]);
   assert.deepEqual(warmups("lateral", 15, g50), []);          // isolation: no ramp
   assert.deepEqual(warmups("chinup", 0, g50), []);             // bodyweight: no ramp
 });
@@ -98,7 +99,7 @@ test("plates per side", () => {
 });
 test("supersets pair the last two isolation lifts; swaps stay in the muscle group", () => {
   const p = buildProgram({gear:g50, prog:PROGRAM_DEFAULTS, trainingDays:[1,2,4,5]});
-  assert.ok(p.every(d => d.ex.filter(e => e[7] === "A").length === 2));
+  assert.ok(p.some(d => d.ex.filter(e => e[7] === "A").length === 2) && p.every(d => [0, 2].includes(d.ex.filter(e => e[7] === "A").length)));
   const off = buildProgram({gear:g50, prog:{...PROGRAM_DEFAULTS, supersets:false}, trainingDays:[1,2,4,5]});
   assert.ok(off.every(d => d.ex.every(e => !e[7])));
   const alts = alternatives("row", g50, ["row"]);

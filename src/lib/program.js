@@ -1,3 +1,4 @@
+import { planWeek } from "./split.js";
 // Stack program generator (pure).
 // Builds PROGRAM (an array of training days) from the user's goals, schedule and equipment.
 // Nothing here is shown as a list in the app; the workout page simply reflects what this produces.
@@ -182,43 +183,24 @@ const PATTERNS = {
 export const PATTERN = Object.fromEntries(Object.entries(PATTERNS).flatMap(([p, keys]) => keys.map(k => [k, p])));
 export const patternOf = key => PATTERN[key] || null;
 
-// ---------- day templates ----------
-// Each day is a list of slots; a slot names acceptable muscle groups in order of preference.
-// Slots are ordered compounds first, so trimming for a short session drops isolation work.
-const T = {
-  push:  [["chest"],["chest_upper","chest"],["shoulders"],["side_delts"],["triceps"],["chest"],["triceps"]],
-  pull:  [["lats"],["back"],["back","lats"],["rear_delts"],["biceps"],["biceps"],["traps"]],
-  legs:  [["quads"],["hams"],["quads"],["glutes"],["calves"],["hams"]],
-  upper: [["chest"],["back"],["shoulders"],["lats"],["side_delts"],["biceps"],["triceps"]],
-  full:  [["quads"],["chest"],["back"],["hams"],["shoulders"],["biceps"],["triceps"]],
-  arms:  [["shoulders"],["side_delts"],["rear_delts"],["biceps"],["triceps"],["biceps"],["triceps"]],
-  core:  [["abs"],["abs_lower"],["obliques"]],
-  coreday:[["abs"],["abs_lower"],["obliques"],["abs"],["obliques"]],
-  lowerA:[["quads"],["hams"],["quads"],["calves"],["glutes"]],
-  lowerB:[["glutes"],["hams"],["quads"],["calves"],["hams"]],
-};
-const DAY_META = {
-  push:{name:"Push", focus:"Chest · Shoulders · Tri"}, pull:{name:"Pull", focus:"Back · Biceps"}, legs:{name:"Legs", focus:"Quads · Hams · Glutes"},
-  upper:{name:"Upper", focus:"Chest · Back · Arms"}, full:{name:"Full body", focus:"Everything, once"}, arms:{name:"Arms & delts", focus:"Shoulders · Arms"},
-  coreday:{name:"Core", focus:"Abs · Obliques"}, lowerA:{name:"Lower A", focus:"Quads · Hams"}, lowerB:{name:"Lower B", focus:"Glutes · Hams"},
-};
-
-// Pick the split from how many days you train and what you want to work.
-export function chooseSplit(days, focus){
-  const up = focus.includes("upper"), lo = focus.includes("lower"), core = focus.includes("core");
-  let split;
-  if (up && lo) split = {2:["full","full"],3:["full","full","full"],4:["upper","legs","upper","legs"],5:["upper","legs","upper","legs","full"],6:["push","pull","legs","push","pull","legs"]}[days];
-  else if (up) split = {2:["upper","upper"],3:["push","pull","upper"],4:["push","pull","push","pull"],5:["push","pull","push","pull","arms"],6:["push","pull","arms","push","pull","arms"]}[days];
-  else if (lo) split = {2:["lowerA","lowerB"],3:["lowerA","lowerB","lowerA"],4:["lowerA","lowerB","lowerA","lowerB"],5:["lowerA","lowerB","lowerA","lowerB","legs"],6:["lowerA","lowerB","legs","lowerA","lowerB","legs"]}[days];
-  else split = Array.from({length:days}, () => "coreday");
-  if (!split) split = Array.from({length:Math.max(1,days)}, (_,i) => (up&&lo) ? ["upper","legs"][i%2] : up ? ["push","pull"][i%2] : lo ? ["lowerA","lowerB"][i%2] : "coreday");
-  return split.map(k => ({kind:k, core: core && k!=="coreday"}));
-}
-
 // ---------- builder ----------
+// The week is planned muscle by muscle (src/lib/split.js): which muscles each day trains, how many hard sets each
+// gets and in what order. This turns that plan into lifts from what you own.
+// Library groups for each planner muscle, by lift position (first lift leads with the compound).
+const GROUPS = {
+  chest:    [["chest", "chest_upper"], ["chest_upper", "chest"], ["chest"]],
+  back:     [["lats", "back"], ["back", "lats"], ["traps", "lats", "back"]],
+  shoulders:[["shoulders", "side_delts"], ["side_delts"], ["rear_delts"]],
+  biceps:   [["biceps"]], triceps: [["triceps"]],
+  quads:    [["quads"], ["quads"]], hams: [["hams"]], glutes: [["glutes"]], calves: [["calves"]],
+  core:     [["abs", "abs_lower", "obliques"], ["abs_lower", "obliques", "abs"], ["obliques", "abs"]],
+};
+// Planner muscle of each library group (for crediting and naming).
+export const MUSCLE_OF_GROUP = {chest:"chest", chest_upper:"chest", shoulders:"shoulders", side_delts:"shoulders", rear_delts:"shoulders", triceps:"triceps", biceps:"biceps", lats:"back", back:"back", traps:"back", quads:"quads", hams:"hams", glutes:"glutes", calves:"calves", abs:"core", abs_lower:"core", obliques:"core"};
+const MUSCLE = {chest:"chest", chest_upper:"chest", shoulders:"shoulders", side_delts:"shoulders", rear_delts:"shoulders", triceps:"arms", biceps:"arms", lats:"back", back:"back", traps:"back", quads:"legs", hams:"legs", glutes:"legs", calves:"legs", abs:"core", abs_lower:"core", obliques:"core"};
+
 export function buildProgram(opts){
   const {gear, prog, trainingDays, block = 1} = opts;
-  const days = Math.min(6, Math.max(1, trainingDays.length || 4));
   const focus = prog.focus && prog.focus.length ? prog.focus : ["upper","core"];
   const have = new Set(gear.equipment || []);
   if (gear.bar) have.add("bar");
@@ -228,70 +210,55 @@ export function buildProgram(opts){
   const ok = e => !excluded.has(e.key) && e.needs.every(n => have.has(n)) && !e.unless.some(n => have.has(n)) && (e.bw || (e.equip === "db" ? (have.has("dumbbells") && gear.dumbbells.length > 0) : e.equip === "kb" ? (gear.kettlebells||[]).length > 0 : true));
   const rep = {size:{compound:"8–12", iso:"12–15"}, strength:{compound:"5–8", iso:"8–12"}, endurance:{compound:"12–15", iso:"15–20"}}[prog.goal || "size"];
   const liftsPer = {short:4, standard:6, long:8}[prog.length || "standard"];
-  const setsFor = e => (prog.goal === "strength" && e.kind === "compound") ? 4 : e.kind === "compound" ? 4 : 3;
   const expMult = {new:0.8, some:1, experienced:1.2}[prog.experience || "some"];
   const bwMult = Math.pow((prog.bodyweight || 150) / 150, 0.7);
   const startFor = e => { if (e.bw) return 0; const w = Math.max(5, Math.round(e.start * expMult * bwMult / 5) * 5); return ladder(e.equip, gear).nearest(w); };
   const repsFor = e => e.reps ? e.reps : e.timed ? "20–45" : e.bw && e.region !== "core" ? "max" : e.region === "core" && e.bw ? "10–15" : rep[e.kind];
-  const toRow = (e, sets) => [e.key, e.name, sets || setsFor(e), repsFor(e), startFor(e), e.q, e.g, null];
+  const toRow = (e, sets) => [e.key, e.name, sets, repsFor(e), startFor(e), e.q, e.g, null];
 
-  const split = chooseSplit(days, focus);
+  const week = planWeek({trainingDays: trainingDays && trainingDays.length ? trainingDays : [1,2,4,5], goal: prog.goal, experience: prog.experience, length: prog.length, focus});
   const usedCount = {};                                  // spread variety across the week
   // each new block nudges the second-choice exercises up so the plan rotates without losing the main lifts
   const rot = e => { if (block <= 1 || e.pri === 0) return 0; let h = block; for (const ch of e.key) h = (h * 31 + ch.charCodeAt(0)) % 97; return h % 2 ? -1.5 : 0; };
-  // Variety within a day: a lift whose movement pattern is already in the day scores 3 worse per repeat,
-  // so the third "back" slot becomes a pullover or rear-delt move rather than a third row.
   // A repeat of a pattern costs 3; a repeat of the same pattern *and* muscle group (one-arm row after bent-over row) costs 6.
   const patternsToday = usedToday => { const c = {}; for (const k of usedToday) { const p = PATTERN[k]; if (p) { c[p] = (c[p] || 0) + 1; c[p + "/" + LIB_BY_KEY[k].group] = (c[p + "/" + LIB_BY_KEY[k].group] || 0) + 1; } } return c; };
-  const pick = (groups, usedToday, slot = 9) => {
+  const pick = (groups, usedToday, wantCompound) => {
     const pt = patternsToday(usedToday);
-    // the first two slots of a day should be compounds when any exist for the group
-    const score = e => e.pri + rot(e) + (usedCount[e.key]||0)*2 + (PATTERN[e.key] ? (pt[PATTERN[e.key]] || 0) * 3 + (pt[PATTERN[e.key] + "/" + e.group] || 0) * 3 : 0) + (slot < 2 && e.kind !== "compound" ? 4 : 0);
-    // all of the slot's groups compete, earlier groups with a small head start
+    const score = e => e.pri + rot(e) + (usedCount[e.key]||0)*2 + (PATTERN[e.key] ? (pt[PATTERN[e.key]] || 0) * 4 + (pt[PATTERN[e.key] + "/" + e.group] || 0) * 3 : 0) + (wantCompound && e.kind !== "compound" ? 4 : 0);
     const cands = groups.flatMap((g, gi) => LIB.filter(e => e.group === g && ok(e) && !usedToday.has(e.key)).map(e => [score(e) + gi * 0.5, e])).sort((a, b) => a[0] - b[0]);
     return cands.length ? cands[0][1] : null;
   };
-  const program = split.map((d, i) => {
-    const usedToday = new Set(); const ex = [];
-    for (const [si, slot] of T[d.kind].entries()) { if (ex.length >= liftsPer) break; const e = pick(slot, usedToday, si); if (e) { usedToday.add(e.key); usedCount[e.key] = (usedCount[e.key]||0) + 1; ex.push(e); } }
-    let coreEx = [];
-    if (d.core && (days <= 2 || i % 2 === 1 || days === 3)) {           // core finisher on every other day (every day when 2–3 days)
-      for (const slot of T.core) { const e = pick(slot, usedToday); if (e) { usedToday.add(e.key); usedCount[e.key] = (usedCount[e.key]||0) + 1; coreEx.push(e); } }
-    }
+  const program = week.map((d, i) => {
+    const usedToday = new Set(); const lead = d.muscles[0] && d.muscles[0].m;
+    // how many lifts each muscle gets: one per ~4 sets, trimmed to the session's lift budget from the smallest muscles up
+    // every muscle gets one lift; spare lift slots go to the muscles with the most sets per lift (≥2.5 sets a lift), biggest first
+    const plan = d.muscles.map(x => ({...x, lifts: 1}));
+    let total = plan.length;
+    for (let k = plan.length - 1; k >= 0 && total > liftsPer; k--) { if (plan[k].m !== lead) { plan[k].lifts = 0; total--; } }
+    while (total < liftsPer) { const c = plan.filter(x => x.lifts > 0 && x.sets / (x.lifts + 1) >= (x.m === "core" ? 2 : x.m === lead && x.lifts === 1 ? 2.5 : 3) && (x.m !== "core" ? x.lifts < 3 : x.lifts < 4)).sort((a, b) => b.sets / b.lifts - a.sets / a.lifts)[0]; if (!c) break; c.lifts++; total++; }
+    // choose the lifts, muscle by muscle in plan order
+    const chosen = [];
+    plan.forEach(x => { if (!x.lifts) return; const per = x.sets / x.lifts; const slots = x.m === "shoulders" && d.type === "pull" ? [["rear_delts"]] : GROUPS[x.m] || [[x.m]];
+      for (let k = 0; k < x.lifts; k++) { const e = pick(slots[Math.min(k, slots.length - 1)], usedToday, k === 0 && x.m !== "core"); if (!e) continue;
+        usedToday.add(e.key); usedCount[e.key] = (usedCount[e.key]||0) + 1;
+        const sets = Math.max(2, Math.min(5, Math.round(k === 0 ? Math.ceil(per) : Math.floor(per)))); chosen.push({e, sets, m:x.m}); } });
+    // order: the day's lead muscle first, then the other compounds in plan order, then isolation, calves and core last
+    const rank = c => c.m === "core" ? 4 : c.m === "calves" ? 3 : c.e.kind === "compound" ? (c.m === lead ? 0 : 1) : 2;
+    chosen.sort((a, b) => rank(a) - rank(b));
     // never two lifts of the same movement pattern back to back when something else can sit between them
-    for (let k = 1; k < ex.length; k++) { const p = PATTERN[ex[k].key]; if (p && PATTERN[ex[k - 1].key] === p) { const j = ex.findIndex((x, m) => m > k && PATTERN[x.key] !== p); if (j > 0) { const [moved] = ex.splice(j, 1); ex.splice(k, 0, moved); } } }
-    const meta = DAY_META[d.kind];
-    return {key:"d"+(i+1), name:meta.name, focus:meta.focus + (coreEx.length ? " · Abs" : ""), ex:[...ex.map(e => toRow(e)), ...coreEx.map(e => toRow(e, 2))]};
+    for (let k = 1; k < chosen.length; k++) { const p = PATTERN[chosen[k].e.key]; if (p && PATTERN[chosen[k - 1].e.key] === p) { const j = chosen.findIndex((x, m) => m > k && PATTERN[x.e.key] !== p && rank(x) < 3); if (j > 0) { const [moved] = chosen.splice(j, 1); chosen.splice(k, 0, moved); } } }
+    const got = [...new Set(chosen.map(c => c.m))]; const label = {chest:"Chest", back:"Back", shoulders:"Shoulders", biceps:"Biceps", triceps:"Triceps", quads:"Quads", hams:"Hams", glutes:"Glutes", calves:"Calves", core:"Core"};
+    const main = got.filter(m => m !== "core").slice(0, 4).map(m => label[m]);
+    return {key:"d"+(i+1), name:d.name, focus: (main.length ? main.join(" · ") : "Abs · Obliques") + (main.length && got.includes("core") ? " · Core" : ""), dow:d.dow, type:d.type, muscles:d.muscles, ex: chosen.map(c => toRow(c.e, c.sets))};
   });
-  const balanced = rebalance(program, focus);
-  if (prog.supersets !== false) balanced.forEach(d => pairIsolation(d));
-  return balanced;
+  if (prog.supersets !== false) program.forEach(d => pairIsolation(d));
+  return program;
 }
 // Superset: the last two isolation lifts that work different muscles share a pair tag ("A").
 function pairIsolation(day){
   const iso = day.ex.map((e, i) => [e, i]).filter(([e]) => LIB_BY_KEY[e[0]] && LIB_BY_KEY[e[0]].kind === "iso" && LIB_BY_KEY[e[0]].region !== "core");
   for (let a = iso.length - 1; a > 0; a--) { const [ea, ia] = iso[a], [eb, ib] = iso[a - 1];
-    if (MUSCLE[LIB_BY_KEY[ea[0]].group] !== MUSCLE[LIB_BY_KEY[eb[0]].group] && Math.abs(ia - ib) === 1 && ea[2] === eb[2]) { ea[7] = "A"; eb[7] = "A"; return; } }
-}
-
-// Keep weekly hard sets per muscle inside the growth window: add a set to the lifts of an
-// under-served muscle, trim one from an over-served one. Compounds first, never below 2 or above 5.
-const MUSCLE = {chest:"chest", chest_upper:"chest", shoulders:"shoulders", side_delts:"shoulders", rear_delts:"shoulders", triceps:"arms", biceps:"arms", lats:"back", back:"back", traps:"back", quads:"legs", hams:"legs", glutes:"legs", calves:"legs", abs:"core", abs_lower:"core", obliques:"core"};
-const WINDOW = {chest:[10,20], back:[10,20], shoulders:[8,20], arms:[8,18], legs:[10,20], core:[6,14]};
-function rebalance(program, focus){
-  const want = new Set(); if (focus.includes("upper")) ["chest","back","shoulders","arms"].forEach(m => want.add(m)); if (focus.includes("lower")) want.add("legs"); if (focus.includes("core")) want.add("core");
-  const count = () => { const c = {}; program.forEach(d => d.ex.forEach(e => { const m = MUSCLE[LIB_BY_KEY[e[0]].group]; c[m] = (c[m] || 0) + e[2]; })); return c; };
-  for (let pass = 0; pass < 6; pass++) {
-    const c = count(); let changed = false;
-    for (const m of want) {
-      const [lo, hi] = WINDOW[m]; const rows = program.flatMap(d => d.ex).filter(e => MUSCLE[LIB_BY_KEY[e[0]].group] === m).sort((a, b) => (LIB_BY_KEY[a[0]].kind === "compound" ? 0 : 1) - (LIB_BY_KEY[b[0]].kind === "compound" ? 0 : 1));
-      if (!rows.length) continue;
-      if ((c[m] || 0) < lo) { const r = rows.find(e => e[2] < 5); if (r) { r[2]++; changed = true; } }
-      else if ((c[m] || 0) > hi) { const r = rows.slice().reverse().find(e => e[2] > 2); if (r) { r[2]--; changed = true; } }
-    }
-    if (!changed) break;
-  }
-  return program;
+    if (MUSCLE[LIB_BY_KEY[ea[0]].group] !== MUSCLE[LIB_BY_KEY[eb[0]].group] && Math.abs(ia - ib) === 1) { ea[7] = "A"; eb[7] = "A"; return; } }
 }
 
 export const PROGRAM_DEFAULTS = {focus:["upper","core"], goal:"size", length:"standard", experience:"some", bodyweight:150, excluded:[], supersets:true};

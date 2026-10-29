@@ -100,4 +100,12 @@ export function strengthSummary(sessions, names){
     .sort((a, b) => b.pct - a.pct || b.delta - a.delta || a.name.localeCompare(b.name));   // biggest improvement first
 }
 
+// Rest between sets by goal (seconds). Hypertrophy: 2–3 min compounds, ≥90 s isolation. Strength: 3–5 min on the
+// main lifts. Endurance: 30–60 s. Inside a superset the pair is back to back; the full rest comes after the second lift.
 export const REST = { compound:150, iso:90, last:120, superset:30 };
+export const REST_BY_GOAL = {
+  size:      { compound:150, iso:90,  last:120, superset:30 },
+  strength:  { compound:210, iso:120, last:150, superset:30 },
+  endurance: { compound:60,  iso:45,  last:60,  superset:20 },
+};
+export const restTable = goal => REST_BY_GOAL[goal] || REST;

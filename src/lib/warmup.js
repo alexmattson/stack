@@ -3,10 +3,12 @@ import { LIB_BY_KEY, ladder, patternOf } from "./program.js";
 
 // Ramp before the first working set of a compound. full: 50% × 8, 70% × 5, 85% × 2 (the first lift of the session);
 // otherwise a single feel set at 70% × 4. Snapped to weights you own.
-export function warmups(key, workW, gear, full = true){
+// Strength (heavy, low reps) gets a longer ramp: 50% × 5, 70% × 3, 85% × 1. Size and endurance: 50% × 8, 75% × 5.
+// Later lifts of a new pattern get one feeder set at ~60% × 5 (Enes 2025: more ramping doesn't help).
+export function warmups(key, workW, gear, full = true, goal = "size"){
   const e = LIB_BY_KEY[key]; if (!e || e.bw || e.kind !== "compound" || !workW || workW < 20) return [];
   const lad = ladder(e.equip, gear);
-  const steps = full ? [[0.5, 8], [0.7, 5], [0.85, 2]] : [[0.7, 4]];
+  const steps = full ? (goal === "strength" ? [[0.5, 5], [0.7, 3], [0.85, 1]] : [[0.5, 8], [0.75, 5]]) : [[0.6, 5]];
   const out = []; const seen = new Set();
   for (const [f, r] of steps) { const w = lad.nearest(Math.round(workW * f / 5) * 5); if (w >= workW || seen.has(w)) continue; seen.add(w); out.push({w, r}); }
   return out;
@@ -25,11 +27,11 @@ export const plateText = per => !per ? "" : per.length ? per.map(p => (p % 1 ? p
 // Which lifts get a ramp, and how big. The first compound in the day gets the full ramp; a later compound gets one
 // feel set only if its movement pattern hasn't been trained yet today; a repeat pattern (second row, second press) gets none.
 // Returns {ei: [{w,r}]} for lifts whose first set isn't logged.
-export function warmupPlan(day, suggestions, gear, savedSet){
+export function warmupPlan(day, suggestions, gear, savedSet, goal = "size"){
   const out = {}; const seen = new Set(); let first = true;
   day.ex.forEach((e, ei) => { const lib = LIB_BY_KEY[e[0]]; if (!lib || lib.kind !== "compound" || lib.bw) return;
     const p = patternOf(e[0]) || e[0]; const logged = !!savedSet(e[0], 0);
-    if (!logged) { const steps = seen.has(p) ? [] : warmups(e[0], (suggestions[e[0]] || {}).w, gear, first); if (steps.length) out[ei] = steps; }
+    if (!logged) { const steps = seen.has(p) ? [] : warmups(e[0], (suggestions[e[0]] || {}).w, gear, first, goal); if (steps.length) out[ei] = steps; }
     seen.add(p); first = false; });
   return out;
 }

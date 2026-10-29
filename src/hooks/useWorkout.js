@@ -5,7 +5,7 @@ import { warmupPlan, generalWarmup } from "../lib/warmup.js";
 import { planFromStore, BODYWEIGHT_EX, LIB_BY_KEY, ladder } from "../lib/program.js";
 import { parseRange } from "../lib/progression.js";
 import { COMPOUND } from "../lib/program.js";
-import { REST } from "../lib/progression.js";
+import { restTable } from "../lib/progression.js";
 import { cycleInfo, deloadSets } from "../lib/cycle.js";
 import { detectPR } from "../lib/prs.js";
 
@@ -42,7 +42,7 @@ export function useWorkout(data, date, dayIdx){
   // Paired lifts (supersets) alternate set by set: A1, B1, A2, B2…
   const sequence = useMemo(() => { const seq = []; const done = new Set();
     if (doneCount === 0) general.forEach((g, gi) => seq.push({gen:true, gi, ei:-1, si:-1, move:g}));
-    const plan = warmupPlan(day, suggestions, data.gear, savedSet);
+    const plan = warmupPlan(day, suggestions, data.gear, savedSet, data.prog.goal);
     const wuFor = ei => (plan[ei] || []).map((s, k) => ({ei, si:0, wu:k, w:s.w, r:s.r}));
     day.ex.forEach((e, ei) => { if (done.has(ei)) return; const partner = e[7] ? day.ex.findIndex((x, j) => j > ei && x[7] === e[7]) : -1;
       wuFor(ei).forEach(x => seq.push(x));
@@ -61,7 +61,7 @@ export function useWorkout(data, date, dayIdx){
   useEffect(() => { setPtr(nextOpen() || {ei:0, si:0}); }, [id]); // eslint-disable-line
   const flatIndex = p => { let n = 0; for (let ei = 0; ei < p.ei; ei++) n += day.ex[ei][2]; return n + p.si; };
   // Inside a superset the rest between the pair is short; the full rest comes after the second lift.
-  const restFor = (key, isLast, from, nxt) => { if (from && nxt && day.ex[from.ei][7] && day.ex[from.ei][7] === day.ex[nxt.ei][7] && from.ei !== nxt.ei) return REST.superset; return isLast ? REST.last : COMPOUND.has(key) ? REST.compound : REST.iso; };
+  const restFor = (key, isLast, from, nxt) => { const REST = restTable(data.prog.goal); if (from && nxt && day.ex[from.ei][7] && day.ex[from.ei][7] === day.ex[nxt.ei][7] && from.ei !== nxt.ei) return nxt.ei > from.ei ? REST.superset : REST.iso; return isLast ? REST.last : COMPOUND.has(key) ? REST.compound : REST.iso; };
   const swap = (oldKey, alt) => api.swapExercise(id, date, dayIdx, oldKey, rowFor(alt, data.gear, data.prog));
   const alts = key => alternatives(key, data.gear, day.ex.map(e => e[0]));
   // Target for a set *right now*, adjusted by how the earlier sets of this lift went today.
@@ -82,5 +82,5 @@ export function useWorkout(data, date, dayIdx){
     return base; }, [suggestions, day, savedSet, data.gear]);
   const save = async (key, i, w, r, e) => { const pr = detectPR(data.prs, key, w, r); const t = target(key, i).r || null; await api.saveSet(id, date, dayIdx, key, i, w, r, e, t); return pr; };
   const finish = (pending, note) => api.finish(id, date, dayIdx, pending, note);
-  return { id, date, session, day, total, doneCount, savedSet, nextOpen, ptr, setPtr, flatIndex, suggestions, restFor, save, finish, isBW: key => BODYWEIGHT_EX.has(key), isDeload, cycle:cyc, sequence, seqIndex, prevInSeq, nextInSeq, isLastInSeq, swap, alts, markWu, isOpen, workingIndex, target, general, warmupPlan: () => warmupPlan(day, suggestions, data.gear, savedSet) };
+  return { id, date, session, day, total, doneCount, savedSet, nextOpen, ptr, setPtr, flatIndex, suggestions, restFor, save, finish, isBW: key => BODYWEIGHT_EX.has(key), isDeload, cycle:cyc, sequence, seqIndex, prevInSeq, nextInSeq, isLastInSeq, swap, alts, markWu, isOpen, workingIndex, target, general, warmupPlan: () => warmupPlan(day, suggestions, data.gear, savedSet, data.prog.goal) };
 }
