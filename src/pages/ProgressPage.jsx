@@ -29,8 +29,8 @@ const Sparkline = ({ bl, start }) => {
 
 const LiftList = ({ st }) => !st.length ? <div className="empty">Log a session and each lift's first vs latest top set will appear here.</div> : (
   <div className="lifts">{st.map(x => { const same = x.first.date === x.last.date; const pct = same ? 0 : Math.max(0, Math.min(100, x.pct)); const label = same ? "new" : (x.delta > 0 ? "+" : "") + (BODYWEIGHT_EX.has(x.k) ? x.delta : x.pct + "%");
-    const cell = t => BODYWEIGHT_EX.has(x.k) ? <>{t.r}<small>reps</small></> : `${t.w}×${t.r}`;
-    return <div key={x.k} className="lift"><Ring pct={pct} label={label} up={x.delta > 0}/><div className="nm"><b>{x.name}</b><span className="dots"/></div><span className="val">{cell(x.last)}<small>was {BODYWEIGHT_EX.has(x.k) ? x.first.r : x.first.w + "×" + x.first.r}</small></span></div>; })}</div>
+    const bw = BODYWEIGHT_EX.has(x.k); const cell = t => bw ? `${t.r} reps` : `${t.w}×${t.r}`;
+    return <div key={x.k} className="lift"><Ring pct={pct} label={label} up={x.delta > 0}/><div className="nm"><b>{x.name}</b><span className="dots"/></div><span className="val"><span>{cell(x.last)}</span><small>{same ? "first time" : `was ${cell(x.first)}`}</small></span></div>; })}</div>
 );
 
 const History = ({ sessions, program, names, onDelete }) => {

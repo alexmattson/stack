@@ -329,8 +329,9 @@ textarea{border-radius:18px;line-height:1.4;font-weight:500}
 .lift .nm{flex:1;min-width:0;display:flex;align-items:baseline;gap:8px;overflow:hidden}
 .lift .nm b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .lift .nm .dots{flex:1;border-bottom:2px dotted var(--line);margin:0 2px 4px;height:0}
-.lift .val{font-weight:800;font-variant-numeric:tabular-nums;white-space:nowrap}
-.lift .val small{color:var(--muted);font-weight:600;font-size:.75rem;margin-left:3px}
+.lift .val{flex:none;display:flex;flex-direction:column;align-items:flex-end;line-height:1.15;font-weight:800;font-variant-numeric:tabular-nums;white-space:nowrap;max-width:44%}
+.lift .val small{color:var(--muted);font-weight:600;font-size:.72rem;margin-left:0}
+.lift .val > small:first-child{margin-left:3px}
 .ring.up{background:conic-gradient(var(--good) calc(var(--p)*1%),var(--line) 0)}
 
 .chart{width:100%;height:auto;display:block;background:var(--card);border-radius:22px}
