@@ -5,7 +5,9 @@ import { exImg, TIMED, LIB_BY_KEY } from "../lib/program.js";
 import { platesPerSide, plateText } from "../lib/warmup.js";
 import { ConfirmSheet } from "../components/ui.jsx";
 
-const Segments = ({ wo }) => <div className="seg">{wo.sequence.map(p => <i key={`${p.gen ? "g" + p.gi : p.ei}-${p.si}-${p.wu ?? "s"}`} className={`${p.wu !== undefined || p.gen ? "wu" : ""} ${!wo.isOpen(p) ? "done" : ""} ${!!p.gen === !!wo.ptr.gen && (p.gi ?? -1) === (wo.ptr.gi ?? -1) && p.ei === wo.ptr.ei && p.si === wo.ptr.si && (p.wu ?? -1) === (wo.ptr.wu ?? -1) ? "cur" : ""}`}/>)}</div>;
+// The highlighted pip is the set being done; during a rest it's the set coming up, so what's finished reads green.
+const Segments = ({ wo, at }) => { const c = at || wo.ptr; return <div className="seg">{wo.sequence.map(p => { const isCur = c && !!p.gen === !!c.gen && (p.gi ?? -1) === (c.gi ?? -1) && p.ei === c.ei && p.si === c.si && (p.wu ?? -1) === (c.wu ?? -1);
+  return <i key={`${p.gen ? "g" + p.gi : p.ei}-${p.si}-${p.wu ?? "s"}`} className={`${p.wu !== undefined || p.gen ? "wu" : ""} ${isCur ? "cur" : !wo.isOpen(p) ? "done" : ""}`}/>; })}</div>; };
 
 const RestCard = ({ timer, nextText, nextGuide, nextImg, nextTarget, nextPlates, onNext }) => (
   <div className={`fcard frest ${timer.done ? "go" : ""}`}>
@@ -63,7 +65,7 @@ export function FocusMode({ data, wo, onBack, onHome }){
     <section id="focus">
       <div className="wrap">
         <PageHeader left={<BackButton onClick={onBack} label="Back to workout"/>} title={wo.isDeload ? `${wo.day.name} · deload` : wo.day.name} sub={isGen ? `Warm-up ${wo.ptr.gi + 1} of ${wo.general.length}` : isWu ? `Warm-up · ${name}` : `Set ${wo.workingIndex(wo.ptr)} of ${wo.total}${ex ? " · " + name : ""}`} right={<IconButton name="close" label="Home" onClick={onHome}/>}/>
-        <Segments wo={wo}/>
+        <Segments wo={wo} at={phase === "rest" ? nextPtr : phase === "finish" ? null : wo.ptr}/>
         {phase === "set" && isGen && gen && (
           <div className="fcard wucard gencard">
             <div className="ftop">
