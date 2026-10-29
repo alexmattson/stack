@@ -30,12 +30,18 @@ function useNav(){
 function Shell({ auth }){
   const data = useData(auth.user.uid);
   const nav = useNav();
-  const [wsel, setWsel] = useState({date:today(), dayIdx:0});
+  // The workout in view is a date; which program day it is comes from one place (resolveDay): the session logged on
+  // that date if there is one, otherwise the schedule's projection. Home, the Workout tab and the Schedule all go through it.
+  const [wsel, setWsel] = useState({date:null, dayIdx:null});
+  const wdate = wsel.date || today();
+  const resolveDay = useCallback((date, hint) => { const cur = sessionFor(data.sessions, date); if (cur) { const i = data.program.findIndex(x => x.key === cur.day); if (i >= 0) return i; } return hint ?? plannedDayFor(date, data.sessions, data.program, data.trainingDays); }, [data.sessions, data.program, data.trainingDays]);
+  const wdayIdx = resolveDay(wdate, wsel.dayIdx);
   const [focus, setFocus] = useState(false);
   const [onboarded, setOnboarded] = useState(false);
   const [replay, setReplay] = useState(false);
-  const wo = useWorkout(data, wsel.date, wsel.dayIdx);
-  const openWorkout = (date, dayIdx) => { const cur = sessionFor(data.sessions, date); setWsel({date, dayIdx: cur ? Math.max(0, data.program.findIndex(x => x.key === cur.day)) : (dayIdx ?? plannedDayFor(date, data.sessions, data.program, data.trainingDays))}); nav.go("log"); };
+  const wo = useWorkout(data, wdate, wdayIdx);
+  const openWorkout = (date, dayIdx) => { setWsel({date, dayIdx: dayIdx ?? null}); nav.go("log"); };
+  const selectTab = t => { if (t === "log") setWsel({date:null, dayIdx:null}); nav.jump(t); };   // the Workout tab always means today
   if (!data.loaded) return <Splash/>;
   if (auth.state === "manage") return <LoginScreen auth={auth} manage onBack={auth.closeLogin}/>;
   if ((data.needsOnboarding && !onboarded) || replay) return <Onboarding data={data} replay={replay} onDone={() => { setOnboarded(true); setReplay(false); nav.jump("home"); }} onCancel={() => setReplay(false)}/>;
@@ -44,7 +50,7 @@ function Shell({ auth }){
       <PullToRefresh/>
       <div className="wrap">
         {nav.tab === "home" && <HomePage data={data} onOpenWorkout={openWorkout}/>}
-        {nav.tab === "log" && <WorkoutPage data={data} wo={wo} date={wsel.date} onBack={nav.back} onFocus={() => setFocus(true)}/>}
+        {nav.tab === "log" && <WorkoutPage data={data} wo={wo} date={wdate} onBack={nav.back} onFocus={() => setFocus(true)}/>}
         {nav.tab === "schedule" && <SchedulePage data={data} onBack={nav.back} onPickDate={d => openWorkout(d)}/>}
         {nav.tab === "progress" && <ProgressPage data={data} onBack={nav.back}/>}
         {nav.tab === "goals" && <GoalsPage data={data} onBack={nav.back}/>}
@@ -53,7 +59,7 @@ function Shell({ auth }){
         {nav.tab === "settings" && <AccountPage data={data} auth={auth} onBack={nav.back} onManage={auth.openLogin} go={nav.go} onReplayOnboarding={() => setReplay(true)}/>}
       </div>
       {focus && <FocusMode data={data} wo={wo} onBack={() => setFocus(false)} onHome={() => { setFocus(false); nav.jump("home"); }}/>}
-      <NavRail tab={nav.tab} onSelect={nav.jump}/>
+      <NavRail tab={nav.tab} onSelect={selectTab}/>
     </>
   );
 }

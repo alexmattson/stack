@@ -20,6 +20,13 @@ export function AccountPage({ data, auth, onBack, onManage, go, onReplayOnboardi
         <Status text={auth.error}/>
         <div className="art"><img className="a" src={IMG("acct-man.png")} alt=""/><img className="b" src={IMG("acct-woman.png")} alt=""/></div>
       </Card>
+      <h2>Training</h2>
+      <Card style={{display:"grid", gap:10}}>
+        <RowCard icon={<IconBubble name="cal"/>} title="Training days" sub={trainingDays.length ? trainingDays.map(d => DOW[d]).join(", ") : "None set"} right={<Pill ghost style={{padding:"9px 14px"}} onClick={() => go("schedule")}>Edit</Pill>}/>
+        <RowCard icon={<IconBubble name="bolt"/>} title="Goals" sub={`${prog.focus.map(f => f[0].toUpperCase() + f.slice(1)).join(" + ")} · ${prog.goal} · ${({short:"30", standard:"45", long:"60"})[prog.length]} min`} right={<Pill ghost style={{padding:"9px 14px"}} onClick={() => go("goals")}>Edit</Pill>}/>
+        <RowCard icon={<IconBubble name="push"/>} title="Exercises" sub={(prog.excluded || []).length ? `${prog.excluded.length} turned off` : "All available moves on"} right={<Pill ghost style={{padding:"9px 14px"}} onClick={() => go("exercises")}>Edit</Pill>}/>
+        <RowCard icon={<IconBubble name="gear"/>} title="Equipment" sub={[(gear.equipment||[]).includes("dumbbells") && dbs.length ? `DB ${dbs[0]}–${dbs[dbs.length - 1]}` : "no dumbbells", gear.bench === "none" ? "no bench" : gear.bench + " bench", (gear.equipment||[]).includes("barbell") ? `bar to ${gear.barbell.max}` : null, (gear.equipment||[]).includes("kettlebell") && gear.kettlebells.length ? `KB ${gear.kettlebells.slice().sort((a,b)=>a-b).join("/")}` : null, (gear.equipment||[]).includes("cable") ? `cable to ${gear.cable.max}` : null].filter(Boolean).join(" · ")} right={<Pill ghost style={{padding:"9px 14px"}} onClick={() => go("gear")}>Edit</Pill>}/>
+      </Card>
       <h2>Your data</h2>
       <Card style={{display:"grid", gap:10}}>
         <RowCard icon={<IconBubble name="download"/>} title="Export" sub="Download every session, weigh-in and setting as a file." right={<Pill ghost style={{padding:"9px 14px"}} onClick={exportData}>Export</Pill>}/>
@@ -31,13 +38,6 @@ export function AccountPage({ data, auth, onBack, onManage, go, onReplayOnboardi
         <Segmented value={soundMode} options={SOUND_MODES} onChange={m => { setSoundMode(m); setSM(m); }}/>
         <small className="muted">{soundMode === "cut" ? "Plays even with the silent switch on. Music pauses for the ticks and the whistle, then comes back." : "Plays over your music without stopping it. The silent switch mutes it, so keep the switch off."}</small>
         <RowCard icon={<IconBubble name="flame"/>} title="Test" sub="Three ticks, then the whistle." right={<Pill ghost style={{padding:"9px 14px"}} onClick={() => { snd.prime(); setTimeout(() => snd.tick(10), 150); setTimeout(() => snd.tick(2), 1150); setTimeout(() => snd.tick(1), 2150); setTimeout(() => snd.beep(), 3150); }}>Play</Pill>}/>
-      </Card>
-      <h2>Training</h2>
-      <Card style={{display:"grid", gap:10}}>
-        <RowCard icon={<IconBubble name="cal"/>} title="Training days" sub={trainingDays.length ? trainingDays.map(d => DOW[d]).join(", ") : "None set"} right={<Pill ghost style={{padding:"9px 14px"}} onClick={() => go("schedule")}>Edit</Pill>}/>
-        <RowCard icon={<IconBubble name="bolt"/>} title="Goals" sub={`${prog.focus.map(f => f[0].toUpperCase() + f.slice(1)).join(" + ")} · ${prog.goal} · ${({short:"30", standard:"45", long:"60"})[prog.length]} min`} right={<Pill ghost style={{padding:"9px 14px"}} onClick={() => go("goals")}>Edit</Pill>}/>
-        <RowCard icon={<IconBubble name="push"/>} title="Exercises" sub={(prog.excluded || []).length ? `${prog.excluded.length} turned off` : "All available moves on"} right={<Pill ghost style={{padding:"9px 14px"}} onClick={() => go("exercises")}>Edit</Pill>}/>
-        <RowCard icon={<IconBubble name="gear"/>} title="Equipment" sub={[(gear.equipment||[]).includes("dumbbells") && dbs.length ? `DB ${dbs[0]}–${dbs[dbs.length - 1]}` : "no dumbbells", gear.bench === "none" ? "no bench" : gear.bench + " bench", (gear.equipment||[]).includes("barbell") ? `bar to ${gear.barbell.max}` : null, (gear.equipment||[]).includes("kettlebell") && gear.kettlebells.length ? `KB ${gear.kettlebells.slice().sort((a,b)=>a-b).join("/")}` : null, (gear.equipment||[]).includes("cable") ? `cable to ${gear.cable.max}` : null].filter(Boolean).join(" · ")} right={<Pill ghost style={{padding:"9px 14px"}} onClick={() => go("gear")}>Edit</Pill>}/>
       </Card>
       {(auth.admin || data.isAdmin) && <>
         <h2>Admin</h2>
