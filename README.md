@@ -120,7 +120,7 @@ Rest between sets: 2:30 after compounds, 1:30 after isolation and core work, 2:0
 
 ### Warm-up cadence
 
-Focus mode opens with a three-minute general warm-up card chosen for the day (arm circles and easy push-ups on a push day, hangs and pull-aparts on a pull day, leg swings and bodyweight squats on a leg day). Ramp sets then sit right before the lift they belong to: the first compound of the session gets the full ramp (50% × 8, 70% × 5, 85% × 2), the first lift of each *new* movement pattern gets a single feel set (70% × 4), and a lift that repeats a pattern already trained that day (a second press, a second row) gets none. The generator also keeps any one pattern to at most two lifts per day, so you never spend half a session on variations of the same row.
+Focus mode opens with two or three warm-up moves, one card each with a guide link, picked per muscle region from a warm-up library and filtered by your equipment (easy push-ups and pike push-ups on a push day, a dead hang or band pull-aparts on a pull day, bodyweight squats and glute bridges on a leg day). Ramp sets then sit right before the lift they belong to: the first compound of the session gets the full ramp (50% × 8, 70% × 5, 85% × 2), the first lift of each *new* movement pattern gets a single feel set (70% × 4), and a lift that repeats a pattern already trained that day (a second press, a second row) gets none. The generator also keeps any one pattern to at most two lifts per day, so you never spend half a session on variations of the same row.
 
 <table>
 <tr>

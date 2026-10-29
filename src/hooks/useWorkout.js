@@ -1,7 +1,7 @@
 import { useMemo, useState, useCallback, useEffect } from "react";
 import { suggest } from "../lib/progression.js";
 import { alternatives, rowFor } from "../lib/program.js";
-import { warmupPlan } from "../lib/warmup.js";
+import { warmupPlan, generalWarmup } from "../lib/warmup.js";
 import { planFromStore, BODYWEIGHT_EX, LIB_BY_KEY, ladder } from "../lib/program.js";
 import { parseRange } from "../lib/progression.js";
 import { COMPOUND } from "../lib/program.js";
@@ -34,23 +34,24 @@ export function useWorkout(data, date, dayIdx){
   const suggestions = useMemo(() => Object.fromEntries(day.ex.map(e => [e[0], suggest(e, past, data.gear, {deload:isDeload, readiness: date === data.today ? data.readiness.level : "unknown"})])), [day, past, data.gear, isDeload, date, data.today, data.readiness.level]);
   // Warm-up steps done this visit (they aren't logged).
   const [doneWu, setDoneWu] = useState(() => new Set());
-  const markWu = p => setDoneWu(s => new Set([...s, p.gen ? "gen" : `${p.ei}-${p.wu}`]));
+  const markWu = p => setDoneWu(s => new Set([...s, p.gen ? `gen-${p.gi}` : `${p.ei}-${p.wu}`]));
+  const general = useMemo(() => generalWarmup(day, data.gear), [day, data.gear]);
   // The order everything is done in: a general warm-up card first (until anything is logged), then each lift's
   // ramp sets right before its first working set, then the working sets. Ramps: full ramp for the first compound,
   // one feel set for the first lift of each new movement pattern, nothing for a repeat pattern.
   // Paired lifts (supersets) alternate set by set: A1, B1, A2, B2…
   const sequence = useMemo(() => { const seq = []; const done = new Set();
-    if (doneCount === 0) seq.push({gen:true, ei:-1, si:-1});
+    if (doneCount === 0) general.forEach((g, gi) => seq.push({gen:true, gi, ei:-1, si:-1, move:g}));
     const plan = warmupPlan(day, suggestions, data.gear, savedSet);
     const wuFor = ei => (plan[ei] || []).map((s, k) => ({ei, si:0, wu:k, w:s.w, r:s.r}));
     day.ex.forEach((e, ei) => { if (done.has(ei)) return; const partner = e[7] ? day.ex.findIndex((x, j) => j > ei && x[7] === e[7]) : -1;
       wuFor(ei).forEach(x => seq.push(x));
       if (partner >= 0) { wuFor(partner).forEach(x => seq.push(x)); const n = Math.max(e[2], day.ex[partner][2]); for (let si = 0; si < n; si++) { if (si < e[2]) seq.push({ei, si}); if (si < day.ex[partner][2]) seq.push({ei:partner, si}); } done.add(ei); done.add(partner); }
       else { for (let si = 0; si < e[2]; si++) seq.push({ei, si}); done.add(ei); } });
-    return seq; }, [day, suggestions, data.gear, savedSet, doneCount]);
-  const same = (a, b) => !!a.gen === !!b.gen && a.ei === b.ei && a.si === b.si && (a.wu ?? -1) === (b.wu ?? -1);
+    return seq; }, [day, suggestions, data.gear, savedSet, doneCount, general]);
+  const same = (a, b) => !!a.gen === !!b.gen && (a.gi ?? -1) === (b.gi ?? -1) && a.ei === b.ei && a.si === b.si && (a.wu ?? -1) === (b.wu ?? -1);
   const seqIndex = p => sequence.findIndex(x => same(x, p));
-  const isOpen = p => p.gen ? !doneWu.has("gen") : p.wu !== undefined ? !doneWu.has(`${p.ei}-${p.wu}`) : !savedSet(day.ex[p.ei][0], p.si);
+  const isOpen = p => p.gen ? !doneWu.has(`gen-${p.gi}`) : p.wu !== undefined ? !doneWu.has(`${p.ei}-${p.wu}`) : !savedSet(day.ex[p.ei][0], p.si);
   const nextOpen = useCallback(from => { const start = from ? seqIndex(from) + 1 : 0; for (let i = start; i < sequence.length; i++) { const p = sequence[i]; if (isOpen(p)) return p; } return null; }, [day, savedSet, sequence, doneWu]); // eslint-disable-line
   const workingIndex = p => sequence.slice(0, seqIndex(p) + 1).filter(x => x.wu === undefined && !x.gen).length;
   const prevInSeq = p => sequence[Math.max(0, seqIndex(p) - 1)] || p;
@@ -81,5 +82,5 @@ export function useWorkout(data, date, dayIdx){
     return base; }, [suggestions, day, savedSet, data.gear]);
   const save = async (key, i, w, r, e) => { const pr = detectPR(data.prs, key, w, r); const t = target(key, i).r || null; await api.saveSet(id, date, dayIdx, key, i, w, r, e, t); return pr; };
   const finish = (pending, note) => api.finish(id, date, dayIdx, pending, note);
-  return { id, date, session, day, total, doneCount, savedSet, nextOpen, ptr, setPtr, flatIndex, suggestions, restFor, save, finish, isBW: key => BODYWEIGHT_EX.has(key), isDeload, cycle:cyc, sequence, seqIndex, prevInSeq, nextInSeq, isLastInSeq, swap, alts, markWu, isOpen, workingIndex, target, warmupPlan: () => warmupPlan(day, suggestions, data.gear, savedSet) };
+  return { id, date, session, day, total, doneCount, savedSet, nextOpen, ptr, setPtr, flatIndex, suggestions, restFor, save, finish, isBW: key => BODYWEIGHT_EX.has(key), isDeload, cycle:cyc, sequence, seqIndex, prevInSeq, nextInSeq, isLastInSeq, swap, alts, markWu, isOpen, workingIndex, target, general, warmupPlan: () => warmupPlan(day, suggestions, data.gear, savedSet) };
 }

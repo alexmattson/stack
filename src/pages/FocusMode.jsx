@@ -2,10 +2,10 @@ import React, { useState, useEffect, useRef } from "react";
 import { PageHeader, BackButton, IconButton, Pill, BigInput, IMG, useStatus, useBeep, Icon } from "../components/ui.jsx";
 import { useRestTimer } from "../hooks/useRestTimer.js";
 import { exImg, TIMED, LIB_BY_KEY } from "../lib/program.js";
-import { platesPerSide, plateText, generalWarmup } from "../lib/warmup.js";
+import { platesPerSide, plateText } from "../lib/warmup.js";
 import { ConfirmSheet } from "../components/ui.jsx";
 
-const Segments = ({ wo }) => <div className="seg">{wo.sequence.map(p => <i key={`${p.gen ? "g" : p.ei}-${p.si}-${p.wu ?? "s"}`} className={`${p.wu !== undefined || p.gen ? "wu" : ""} ${!wo.isOpen(p) ? "done" : ""} ${!!p.gen === !!wo.ptr.gen && p.ei === wo.ptr.ei && p.si === wo.ptr.si && (p.wu ?? -1) === (wo.ptr.wu ?? -1) ? "cur" : ""}`}/>)}</div>;
+const Segments = ({ wo }) => <div className="seg">{wo.sequence.map(p => <i key={`${p.gen ? "g" + p.gi : p.ei}-${p.si}-${p.wu ?? "s"}`} className={`${p.wu !== undefined || p.gen ? "wu" : ""} ${!wo.isOpen(p) ? "done" : ""} ${!!p.gen === !!wo.ptr.gen && (p.gi ?? -1) === (wo.ptr.gi ?? -1) && p.ei === wo.ptr.ei && p.si === wo.ptr.si && (p.wu ?? -1) === (wo.ptr.wu ?? -1) ? "cur" : ""}`}/>)}</div>;
 
 const RestCard = ({ timer, nextText, nextGuide, nextImg, nextTarget, nextPlates, onNext }) => (
   <div className={`fcard frest ${timer.done ? "go" : ""}`}>
@@ -33,7 +33,7 @@ export function FocusMode({ data, wo, onBack, onHome }){
   const ex = wo.day.ex[wo.ptr.ei]; const [key, name, n, reps, , q, g, pair] = ex || []; const bw = ex && wo.isBW(key); const sg = ex && wo.suggestions[key]; const sv = ex && wo.savedSet(key, wo.ptr.si);
   const equipOf = k => (LIB_BY_KEY[k] || {}).equip;
   const plateLine = (k, wv) => { const eq = equipOf(k); if (eq !== "bb" && eq !== "ez") return null; const bar = eq === "ez" ? data.gear.ezbar.bar : data.gear.barbell.bar; const per = platesPerSide(+wv || 0, bar, data.gear.barbell.plates); return per === null ? `Can't load ${wv} lb exactly with your plates` : `Per side: ${plateText(per)}`; };
-  const isGen = !!wo.ptr.gen; const gen = isGen ? generalWarmup(wo.day) : null;
+  const isGen = !!wo.ptr.gen; const gen = isGen ? wo.general[wo.ptr.gi] : null;
   const isWu = wo.ptr.wu !== undefined; const wuTotal = isWu ? wo.sequence.filter(x => x.ei === wo.ptr.ei && x.wu !== undefined).length : 0;
   const [noteOpen, setNoteOpen] = useState(false); const [noteText, setNoteText] = useState("");
   const [swapOpen, setSwapOpen] = useState(false); const [swapping, setSwapping] = useState(false);
@@ -62,18 +62,19 @@ export function FocusMode({ data, wo, onBack, onHome }){
   return (
     <section id="focus">
       <div className="wrap">
-        <PageHeader left={<BackButton onClick={onBack} label="Back to workout"/>} title={wo.isDeload ? `${wo.day.name} · deload` : wo.day.name} sub={isGen ? "Warm up first" : isWu ? `Warm-up · ${name}` : `Set ${wo.workingIndex(wo.ptr)} of ${wo.total}${ex ? " · " + name : ""}`} right={<IconButton name="close" label="Home" onClick={onHome}/>}/>
+        <PageHeader left={<BackButton onClick={onBack} label="Back to workout"/>} title={wo.isDeload ? `${wo.day.name} · deload` : wo.day.name} sub={isGen ? `Warm-up ${wo.ptr.gi + 1} of ${wo.general.length}` : isWu ? `Warm-up · ${name}` : `Set ${wo.workingIndex(wo.ptr)} of ${wo.total}${ex ? " · " + name : ""}`} right={<IconButton name="close" label="Home" onClick={onHome}/>}/>
         <Segments wo={wo}/>
-        {phase === "set" && isGen && (
+        {phase === "set" && isGen && gen && (
           <div className="fcard wucard gencard">
             <div className="ftop">
-              <img className="fimg" src={IMG("stretch.png")} alt=""/>
-              <div className="eyebrow">Warm up · about {gen.minutes} min</div>
-              <h2>Get moving</h2>
-              <div className="why">Easy and quick. Raise your temperature and wake up the muscles you're about to use; save your energy for the sets.</div>
+              <img className="fimg" src={IMG("ex-" + gen.img + ".png")} alt=""/>
+              <div className="eyebrow">Warm-up {wo.ptr.gi + 1} of {wo.general.length} · {gen.region}</div>
+              <h2>{gen.name}</h2>
+              <div className="why">Easy pace, full range. Wake the muscles up; keep your energy for the sets.</div>
+              {gen.g && <div className="muted" style={{fontSize:".85rem"}}><a href={gen.g} target="_blank" rel="noopener">guide</a></div>}
             </div>
-            <ul className="genlist">{gen.items.map(x => <li key={x}>{x}</li>)}</ul>
-            <button className="done-btn" onClick={() => { wo.markWu(wo.ptr); const nxt = wo.nextOpen(wo.ptr); if (!nxt) { setPhase("finish"); return; } wo.setPtr(nxt); setPhase("set"); }}>Ready</button>
+            <div className="wubig"><span><small>Do</small><b style={{fontSize:"1.6rem"}}>{gen.r}</b></span></div>
+            <button className="done-btn" onClick={() => { wo.markWu(wo.ptr); const nxt = wo.nextOpen(wo.ptr); if (!nxt) { setPhase("finish"); return; } wo.setPtr(nxt); setPhase("set"); }}>Done</button>
           </div>
         )}
         {phase === "set" && ex && isWu && (
