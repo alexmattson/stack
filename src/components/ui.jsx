@@ -75,7 +75,7 @@ export const Segmented = ({ options, value, onChange, id }) => (
 );
 // 0–5 slider with a label for the current level.
 export const LevelSlider = ({ value, onChange, labels, id }) => (
-  <div className="lvl"><input type="range" id={id} min="0" max="5" step="1" value={value} onChange={e => onChange(+e.target.value)} style={{"--p": `${value / 5 * 100}%`}}/><span className="lvl-v">{labels[value]}</span></div>
+  <div className="lvl"><input type="range" id={id} min="0" max="5" step="1" value={value} onChange={e => onChange(+e.target.value)} style={{"--f": value / 5}}/><span className="lvl-v">{labels[value]}</span></div>
 );
 export const Toggle = ({ on, onChange, label }) => <button className="tog" aria-pressed={on} aria-label={label} onClick={() => onChange(!on)}><i/></button>;
 export const RowCard = ({ icon, title, sub, right, className = "" }) => (

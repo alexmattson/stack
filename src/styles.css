@@ -584,10 +584,15 @@ input,textarea,select{font-size:max(16px,1em)}
 .focus-row{display:grid;gap:6px}
 .focus-row b{font-weight:800}.focus-row small{display:block;color:var(--muted);font-size:.8rem}
 .lvl{display:flex;align-items:center;gap:12px}
-.lvl input[type="range"]{flex:1;-webkit-appearance:none;appearance:none;height:10px;border-radius:999px;background:linear-gradient(90deg,var(--teal) var(--p),var(--bg2) var(--p));outline:none;margin:6px 0}
+/* the thumb's centre travels from half a thumb in to half a thumb from the end, so the fill is measured the same way */
+.lvl input[type="range"]{--p:calc(13px + (100% - 26px) * var(--f, 0));flex:1;-webkit-appearance:none;appearance:none;height:10px;border-radius:999px;background:linear-gradient(90deg,var(--teal) var(--p),var(--bg2) var(--p));outline:none;margin:6px 0}
 .lvl input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:26px;height:26px;border-radius:50%;background:#fff;border:3px solid var(--teal);box-shadow:0 2px 6px rgba(21,48,58,.25);cursor:pointer}
 .lvl input[type="range"]::-moz-range-thumb{width:26px;height:26px;border-radius:50%;background:#fff;border:3px solid var(--teal);box-shadow:0 2px 6px rgba(21,48,58,.25);cursor:pointer}
 .lvl-v{flex:0 0 64px;text-align:right;font-weight:800;font-size:.85rem;color:var(--teal)}
 .ob-card.ob-lv{cursor:default}
 .ob-card.ob-lv .lvl{margin-top:6px}
 .ob-card.ob-lv[aria-pressed="false"] img{opacity:.45}
+.lvl input[type="range"]{padding:0;margin:6px 0;height:26px;background:none}
+.lvl input[type="range"]::-webkit-slider-runnable-track{height:10px;border-radius:999px;background:linear-gradient(90deg,var(--teal) var(--p),var(--bg2) var(--p))}
+.lvl input[type="range"]::-webkit-slider-thumb{margin-top:-8px}
+.lvl input[type="range"]::-moz-range-track{height:10px;border-radius:999px;background:linear-gradient(90deg,var(--teal) var(--p),var(--bg2) var(--p))}
