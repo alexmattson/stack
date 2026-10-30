@@ -96,6 +96,8 @@ Building a program (`src/lib/split.js` plans the week, `program.js` fills it wit
 4. **Order within the session**: the day's lead muscle first, other compounds next, isolation after, calves and core last — strength gains favour whatever you do first; growth doesn't care.
 5. **Rep ranges from the goal**: strength 5–8, size 8–12, endurance 12–20. Rest: 2:30 / 1:30 for size, 3:30 / 2:00 for strength, 1:00 / 0:45 for endurance; antagonist supersets go back to back with the full rest after the pair.
 6. **Starting weights** scale with bodyweight and experience, then snap to weights you actually have.
+7. **Emphasis, not toggles.** Each area (upper, lower, core) has a 0–5 level. Normal is a full share of the week; A little or Some rides along as a finisher on the main days ("throw a little legs in"); More and Max add sets within the weekly ceiling.
+8. **Variety week to week.** The rep scheme rotates through the cycle (size: 8–12 → 6–10 → 10–15), the A/B lead swaps every other week (squat-led then hinge-led, press-led then pull-led), and lifts that score close to each other shuffle by week so you don't repeat the same session four times. For strength the first compound of each day stays fixed, since strength is partly practice.
 
 The model follows the research summary in `docs/` terms: at equal weekly volume, frequency and split type don't change growth (Schoenfeld 2019; Ramos-Campo 2024), strength favours more frequent practice and the exercises done first in a session (Pelland 2026; Nunes 2021), ≥10 sets a muscle a week with diminishing returns past ~20 (ACSM 2026; Baz-Valle 2022), 48–72 h between hard sessions for a muscle, and antagonist supersets preserving reps while same-muscle supersets don't (Zhang 2025).
 
@@ -204,7 +206,7 @@ firestore.rules     each user reads/writes only users/{uid}/**
 ```
 users/{uid}
   isAdmin: bool                      (optional)
-  settings/program                   focus, goal, length, experience, bodyweight, excluded[]
+  settings/program                   focus[], emphasis{upper,lower,core: 0–5}, goal, length, experience, bodyweight, excluded[]
   settings/equipment                 dumbbells[], bench, equipment[], kettlebells[], barbell{}, ezbar{}, cable{}, bands[]
   settings/schedule                  trainingDays[]
   sessions/{date}_{dayKey}           date, day, plan[] (frozen), sets{key:[{w,r,e?,t?}]} (e = effort 1–3, t = target reps), note, savedAt

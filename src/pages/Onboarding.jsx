@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from "react";
-import { Pill, Icon, IMG, Logo, Segmented, RowCard, IconBubble, Toggle } from "../components/ui.jsx";
+import { LevelSlider, Pill, Icon, IMG, Logo, Segmented, RowCard, IconBubble, Toggle } from "../components/ui.jsx";
 import { GOAL_SUB, Options } from "./SetupPage.jsx";
-import { EQUIPMENT, buildProgram, GEAR_DEFAULTS, PROGRAM_DEFAULTS } from "../lib/program.js";
+import { emphasisOf, focusOf, LEVEL_LABEL, EQUIPMENT, buildProgram, GEAR_DEFAULTS, PROGRAM_DEFAULTS } from "../lib/program.js";
 import { DOW } from "../lib/dates.js";
 
 const STEPS = ["welcome","focus","goal","days","you","gear","done"];
@@ -11,15 +11,16 @@ const PRESETS = [[3,[1,3,5],"Mon · Wed · Fri"],[4,[1,2,4,5],"Mon · Tue · Thu
 
 export function Onboarding({ data, onDone, onCancel, replay }){
   const [i, setI] = useState(0);
-  const [p, setP] = useState({...PROGRAM_DEFAULTS, focus:["upper"]});
+  const [p, setP] = useState({...PROGRAM_DEFAULTS, focus:["upper"], emphasis:{upper:3, lower:0, core:0}});
+  const em = emphasisOf(p); const focus = focusOf(em);
   const [days, setDays] = useState([1,2,4,5]);
   const [g, setG] = useState({...GEAR_DEFAULTS, equipment:["dumbbells"], bar:false, bench:"none"});
   const [busy, setBusy] = useState(false); const [err, setErr] = useState("");
   const step = STEPS[i];
   const equip = new Set(g.equipment);
   const toggleEquip = k => { const n = new Set(equip); n.has(k) ? n.delete(k) : n.add(k); const next = {...g, equipment:[...n], bar:n.has("bar"), bench:n.has("bench") ? (g.bench === "flat" ? "flat" : "incline") : "none"}; if (k === "dumbbells" && n.has(k) && !g.dumbbells.length) next.dumbbells = GEAR_DEFAULTS.dumbbells; setG(next); };
-  const preview = useMemo(() => step === "done" ? buildProgram({gear:g, prog:{...p, bodyweight:+p.bodyweight || 150}, trainingDays:days}) : [], [step, g, p, days]);
-  const canNext = step === "focus" ? p.focus.length > 0 : step === "days" ? days.length > 0 : step === "gear" ? (!equip.has("dumbbells") || g.dumbbells.length > 0) && (!equip.has("kettlebell") || g.kettlebells.length > 0) : true;
+  const preview = useMemo(() => step === "done" ? buildProgram({gear:g, prog:{...p, emphasis:em, focus, bodyweight:+p.bodyweight || 150}, trainingDays:days}) : [], [step, g, p, days]);
+  const canNext = step === "focus" ? focus.length > 0 : step === "days" ? days.length > 0 : step === "gear" ? (!equip.has("dumbbells") || g.dumbbells.length > 0) && (!equip.has("kettlebell") || g.kettlebells.length > 0) : true;
   const next = () => { setErr(""); setI(x => Math.min(STEPS.length - 1, x + 1)); window.scrollTo(0, 0); };
   const back = () => { setErr(""); setI(x => Math.max(0, x - 1)); window.scrollTo(0, 0); };
   const finish = async () => { setBusy(true); try { await data.api.completeOnboarding(g, {...p, bodyweight:+p.bodyweight || 150}, days); onDone(); } catch (e) { setErr("Couldn't save: " + (e.message || e)); setBusy(false); } };
@@ -35,8 +36,8 @@ export function Onboarding({ data, onDone, onCancel, replay }){
         </div>}
 
         {step === "focus" && <div className="ob-body">
-          <div className="eyebrow">Step 1 of 6</div><h1 className="ob-h">What do you want to train?</h1><p className="muted">Pick everything that applies.</p>
-          <div className="ob-cards">{FOCUS.map(([v, t, s, img]) => <button key={v} className="ob-card" aria-pressed={p.focus.includes(v)} onClick={() => setP({...p, focus: p.focus.includes(v) ? p.focus.filter(x => x !== v) : [...p.focus, v]})}><img src={IMG(img)} alt=""/><div><b>{t}</b><small>{s}</small></div><span className="ob-check"><Icon name="tick"/></span></button>)}</div>
+          <div className="eyebrow">Step 1 of 6</div><h1 className="ob-h">What do you want to train?</h1><p className="muted">Slide each area up or down. Normal is a full share; A little adds it as a finisher.</p>
+          <div className="ob-cards">{FOCUS.map(([v, t, s, img]) => <div key={v} className="ob-card ob-lv" aria-pressed={em[v] > 0}><img src={IMG(img)} alt=""/><div style={{flex:1, minWidth:0}}><b>{t}</b><small>{s}</small><LevelSlider id={"ob-lv-" + v} value={em[v]} labels={LEVEL_LABEL} onChange={n => setP({...p, emphasis:{...em, [v]:n}})}/></div></div>)}</div>
         </div>}
 
         {step === "goal" && <div className="ob-body">
@@ -48,7 +49,7 @@ export function Onboarding({ data, onDone, onCancel, replay }){
           <div className="eyebrow">Step 3 of 6</div><h1 className="ob-h">Which days can you train?</h1><p className="muted">The split is chosen from how many days you pick.</p>
           <div className="dow" style={{marginTop:12}}>{DOW.map((n, k) => <button key={k} aria-pressed={days.includes(k)} onClick={() => setDays(days.includes(k) ? days.filter(x => x !== k) : [...days, k].sort())}>{n}</button>)}</div>
           <div className="ob-presets">{PRESETS.map(([n, d, l]) => <button key={n} className="pill ghost mini" onClick={() => setDays(d)}>{n} days · {l}</button>)}</div>
-          <p className="muted" style={{fontSize:".85rem"}}>{days.length} day{days.length === 1 ? "" : "s"} a week{days.length >= 4 && p.focus.includes("upper") && !p.focus.includes("lower") ? " · push / pull split" : days.length >= 4 && p.focus.includes("lower") && p.focus.includes("upper") ? " · upper / lower split" : days.length <= 3 ? " · full sessions each day" : ""}.</p>
+          <p className="muted" style={{fontSize:".85rem"}}>{days.length} day{days.length === 1 ? "" : "s"} a week{days.length >= 4 && focus.includes("upper") && !focus.includes("lower") ? " · push / pull split" : days.length >= 4 && p.focus.includes("lower") && p.focus.includes("upper") ? " · upper / lower split" : days.length <= 3 ? " · full sessions each day" : ""}.</p>
         </div>}
 
         {step === "you" && <div className="ob-body">
@@ -68,7 +69,7 @@ export function Onboarding({ data, onDone, onCancel, replay }){
 
         {step === "done" && <div className="ob-body">
           <div className="eyebrow">Step 6 of 6</div><h1 className="ob-h">Your plan is ready.</h1>
-          <p className="muted">{days.length} days a week · {p.focus.map(f => f[0].toUpperCase() + f.slice(1)).join(" + ")} · {GOALS.find(x => x[0] === p.goal)[1].toLowerCase()}</p>
+          <p className="muted">{days.length} days a week · {focus.map(f => f[0].toUpperCase() + f.slice(1) + (em[f] !== 3 ? ` (${LEVEL_LABEL[em[f]].toLowerCase()})` : "")).join(" + ")} · {GOALS.find(x => x[0] === p.goal)[1].toLowerCase()}</p>
           <div className="ob-plan">{preview.map((d, k) => <div key={d.key} className="ob-day"><b>{d.name}</b><small>{d.ex.length} lifts · {d.ex.reduce((a, e) => a + e[2], 0)} sets</small></div>)}</div>
           <p className="muted" style={{fontSize:".85rem"}}>Every set you log moves the next target. Hit the top of a rep range on every set and the weight goes up; miss it and you'll be told what to do instead.</p>
         </div>}

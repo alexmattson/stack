@@ -73,6 +73,10 @@ export const IconButton = ({ name, label, onClick, title }) => <RoundButton onCl
 export const Segmented = ({ options, value, onChange, id }) => (
   <div className="segc" id={id}>{options.map(([v, label]) => <button key={v} aria-pressed={value === v} onClick={() => onChange(v)}>{label}</button>)}</div>
 );
+// 0–5 slider with a label for the current level.
+export const LevelSlider = ({ value, onChange, labels, id }) => (
+  <div className="lvl"><input type="range" id={id} min="0" max="5" step="1" value={value} onChange={e => onChange(+e.target.value)} style={{"--p": `${value / 5 * 100}%`}}/><span className="lvl-v">{labels[value]}</span></div>
+);
 export const Toggle = ({ on, onChange, label }) => <button className="tog" aria-pressed={on} aria-label={label} onClick={() => onChange(!on)}><i/></button>;
 export const RowCard = ({ icon, title, sub, right, className = "" }) => (
   <div className={`rowcard ${className}`}>{icon}<div className="grow"><b>{title}</b>{sub != null && <small>{sub}</small>}</div>{right}</div>

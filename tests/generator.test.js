@@ -13,7 +13,7 @@ test("no bar removes chin-ups; barbell+rack adds barbell bench", () => {
   const a = buildProgram({gear:{...g50, bar:false, equipment:["dumbbells","bench"]}, prog:PROGRAM_DEFAULTS, trainingDays:[1,2,4,5]});
   assert.ok(!a.some(d => d.ex.some(e => e[0] === "chinup")));
   const b = buildProgram({gear:{...g50, equipment:["dumbbells","bench","bar","barbell","rack"]}, prog:PROGRAM_DEFAULTS, trainingDays:[1,2,4,5]});
-  assert.ok(b[0].ex.some(e => e[0] === "bb_bench"));
+  assert.ok(b.some(d => d.ex.some(e => e[0] === "bb_bench")));
 });
 test("every exercise has media; guides are MuscleWiki links when present", () => { for (const e of LIB) { assert.ok(e.img && e.q, e.key); if (e.g) assert.match(e.g, /^https:\/\/musclewiki\.com\/exercise\//, e.key); } });
 test("no equipment at all still builds a full bodyweight program with swaps", () => {

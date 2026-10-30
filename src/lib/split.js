@@ -19,12 +19,18 @@ const FACTOR_STRENGTH = {chest:1, back:1.1, shoulders:0.6, quads:1, hams:0.9, gl
 // A hard set for the key muscle also counts this much for the synergist (bench → triceps, rows → biceps…).
 const CREDIT = {chest:{triceps:0.3, shoulders:0.15}, shoulders:{triceps:0.25}, back:{biceps:0.3, shoulders:0.15}, quads:{glutes:0.4}, hams:{glutes:0.5, back:0.15}, glutes:{hams:0.25}};
 export const CAP = {new:6, some:8, experienced:10};         // direct hard sets for one muscle in one session
+// Emphasis 0–5 per region: 0 off, 1 a little, 2 some, 3 normal, 4 more, 5 max. Scales that region's weekly sets.
+export const LEVEL = [0, 0.4, 0.7, 1, 1.25, 1.5];
+export const LEVEL_LABEL = ["Off", "A little", "Some", "Normal", "More", "Max"];
+export const emphasisOf = prog => { if (prog && prog.emphasis) return {upper:0, lower:0, core:0, ...prog.emphasis}; const f = (prog && prog.focus) || ["upper", "core"]; return {upper: f.includes("upper") ? 3 : 0, lower: f.includes("lower") ? 3 : 0, core: f.includes("core") ? 3 : 0}; };
+export const focusOf = emphasis => ["upper", "lower", "core"].filter(r => (emphasis[r] || 0) > 0);
 export const LIFTS_PER = {short:4, standard:6, long:8};
 const SETS_PER_LIFT = 3.3;
 
-export function weeklyTargets({goal = "size", experience = "some", focus = ["upper", "core"]}){
+export function weeklyTargets({goal = "size", experience = "some", focus = ["upper", "core"], emphasis}){
+  const em = emphasis || {upper: focus.includes("upper") ? 3 : 0, lower: focus.includes("lower") ? 3 : 0, core: focus.includes("core") ? 3 : 0};
   const base = (BASE[goal] || BASE.size)[experience] || BASE.size.some; const f = goal === "strength" ? FACTOR_STRENGTH : FACTOR; const out = {};
-  for (const m of MUSCLES) { const r = REGION_OF[m]; const on = r === "core" ? focus.includes("core") : focus.includes(r); out[m] = on ? Math.round(base * f[m]) : 0; }
+  for (const m of MUSCLES) { const lv = LEVEL[Math.max(0, Math.min(5, em[REGION_OF[m]] || 0))]; out[m] = lv ? Math.max(lv < 1 ? 3 : 0, Math.round(base * f[m] * lv)) : 0; }
   return out;
 }
 // Direct sets still needed once compounds have credited their synergists. A muscle in focus keeps ≥40% of its
@@ -74,27 +80,38 @@ const cyc = (a, b) => { const d = Math.abs(a - b) % 7; return Math.min(d, 7 - d)
 
 // Plan the week. trainingDays: weekday indexes (0 = Sun). Returns days in calendar order:
 // [{dow, type, name, focus, muscles:[{m, sets}]}]
-export function planWeek({trainingDays, goal = "size", experience = "some", length = "standard", focus = ["upper", "core"]}){
+export function planWeek({trainingDays, goal = "size", experience = "some", length = "standard", focus = ["upper", "core"], emphasis, week = 1}){
   const days = (trainingDays && trainingDays.length ? trainingDays.slice() : [1, 2, 4, 5]).sort((a, b) => a - b).slice(0, 6);
   const n = days.length; const cap = CAP[experience] || 8; const budget = (LIFTS_PER[length] || 6) * SETS_PER_LIFT;
-  const types = dayTypes(n, focus, goal) || Array.from({length:n}, () => "full");
-  const coreOn = focus.includes("core"), onlyCore = !focus.includes("upper") && !focus.includes("lower");
+  const em = emphasis || {upper: focus.includes("upper") ? 3 : 0, lower: focus.includes("lower") ? 3 : 0, core: focus.includes("core") ? 3 : 0};
+  // Regions at level 3+ shape the week; a region at 1–2 ("a little legs") rides along as a finisher on the dominant days.
+  const top = Math.max(em.upper || 0, em.lower || 0);
+  const dominant = ["upper", "lower"].filter(r => (em[r] || 0) > 0 && ((em[r] || 0) >= 3 || (em[r] || 0) === top));
+  const minor = ["upper", "lower"].filter(r => (em[r] || 0) > 0 && !dominant.includes(r));
+  const shape = [...dominant, ...((em.core || 0) > 0 ? ["core"] : [])];
+  const typesBase = dayTypes(n, shape, goal) || Array.from({length:n}, () => "full");
+  // every other week the A/B variants swap, so the lift that leads a day changes
+  const swap = {upperA:"upperB", upperB:"upperA", lowerA:"lowerB", lowerB:"lowerA", fullA:"fullB", fullB:"fullA", quad:"hip", hip:"quad"};
+  const types = week % 2 === 0 ? typesBase.map(t => swap[t] || t) : typesBase;
+  const coreOn = (em.core || 0) > 0, onlyCore = !dominant.length;
   const parse = s => { const [m, w] = s.split("@"); return {m, w: w ? +w : 1}; };
-  const musclesOf = type => TYPES[type].muscles.map(parse);
+  const MINOR = {lower:[["quads", "glutes"], ["hams", "calves"]], upper:[["chest", "back"], ["shoulders", "biceps", "triceps"]]};
+  const musclesOf = (type, i = 0) => { const base = TYPES[type].muscles.map(parse); const extra = minor.flatMap(r => MINOR[r][i % 2].map(m => ({m, w:1})));
+    const core = base.filter(x => x.m === "core"); const rest = base.filter(x => x.m !== "core"); return [...rest, ...extra, ...core]; };
   // Which weekday gets which type: the sequence starts on the day after the longest gap (the freshest day), so the
   // week's first/heaviest session follows rest and same-type sessions sit as far apart as the calendar allows.
   let start = 0, gap = -1; for (let i = 0; i < n; i++) { const g = n === 1 ? 7 : cyc(days[i], days[(i - 1 + n) % n]); if (g > gap) { gap = g; start = i; } }
   const assigned = days.map((dow, i) => ({dow, type: types[(i - start + n) % n]}));
   // Volume: weekly direct targets spread over the days that train each muscle, capped per session and scaled to
   // the session budget. Core only when asked for (≤4 sets a day); on a one-day week everything shrinks to fit.
-  const weekly = weeklyTargets({goal, experience, focus}); const target = directTargets(weekly);
-  // a single-region week gets that region's emphasis (+30%); a core-only week trains core like a real muscle
-  const regions = ["upper", "lower"].filter(r => focus.includes(r)); if (regions.length === 1) for (const m of MUSCLES) if (REGION_OF[m] === regions[0]) target[m] = Math.round(target[m] * 1.3);
+  const weekly = weeklyTargets({goal, experience, focus, emphasis: em}); const target = directTargets(weekly);
+  // a single dominant region gets a little more room (+30%); a core-only week trains core like a real muscle
+  if (dominant.length === 1 && !minor.length) for (const m of MUSCLES) if (REGION_OF[m] === dominant[0]) target[m] = Math.round(target[m] * 1.3);
   if (onlyCore) target.core = Math.round((BASE[goal] || BASE.size)[experience] * 1.6);
   const allow = m => m === "core" ? (coreOn || onlyCore) : target[m] > 0;
-  const on = m => assigned.reduce((a, d) => a + (musclesOf(d.type).find(x => x.m === m) || {w:0}).w, 0);    // weighted days a muscle is trained
-  const out = assigned.map(d => {
-    const list = musclesOf(d.type).filter(x => allow(x.m) && on(x.m) > 0).map(x => ({m:x.m, sets: Math.max(2, Math.min(cap, Math.round((target[x.m] || 4) * x.w / on(x.m))))}));
+  const on = m => assigned.reduce((a, d, i) => a + (musclesOf(d.type, i).find(x => x.m === m) || {w:0}).w, 0);    // weighted days a muscle is trained
+  const out = assigned.map((d, i) => {
+    const list = musclesOf(d.type, i).filter(x => allow(x.m) && on(x.m) > 0).map(x => ({m:x.m, sets: Math.max(2, Math.min(cap, Math.round((target[x.m] || 4) * x.w / on(x.m))))}));
     list.forEach(x => { if (x.m === "core" && !onlyCore) x.sets = Math.min(x.sets, 4); });
     const sum = list.reduce((a, x) => a + x.sets, 0);
     if (sum > budget) { const k = budget / sum; list.forEach(x => { x.sets = Math.max(2, Math.round(x.sets * k)); }); }

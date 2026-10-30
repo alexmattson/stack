@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { PageHeader, BackButton, Card, Pill, Segmented, Toggle, RowCard, IconBubble, IMG, Icon } from "../components/ui.jsx";
-import { EQUIPMENT, KB_WEIGHTS, BAND_LEVELS } from "../lib/program.js";
+import { LevelSlider, PageHeader, BackButton, Card, Pill, Segmented, Toggle, RowCard, IconBubble, IMG, Icon } from "../components/ui.jsx";
+import { emphasisOf, focusOf, LEVEL_LABEL, EQUIPMENT, KB_WEIGHTS, BAND_LEVELS } from "../lib/program.js";
 import { DOW } from "../lib/dates.js";
 
 export const ALL_W = Array.from({length:20}, (_, i) => (i + 1) * 5);
@@ -72,14 +72,16 @@ export function GoalsPage({ data, onBack }){
   const [p, setP] = useState(prog);
   useEffect(() => { setP(prog); }, [prog]);
   const dirty = !same(p, prog);
-  const { state, err, save } = useSave(data, () => [data.gear, {...p, bodyweight:+p.bodyweight || 150}], () => !p.focus.length ? "Pick at least one area to train." : "");
+  const em = emphasisOf(p);
+  const { state, err, save } = useSave(data, () => [data.gear, {...p, emphasis:em, focus:focusOf(em), bodyweight:+p.bodyweight || 150}], () => !focusOf(em).length ? "Turn up at least one area to train." : "");
   return (
     <section id="goals">
       <PageHeader left={<BackButton onClick={onBack}/>} title="Goals" sub="What you're training for"/>
       <Card tone="aqua" className="rowcard" style={{overflow:"hidden", minHeight:120}}><div className="grow"><b>Your goals, your plan</b><small>Change anything here and the whole program is rebuilt around it.</small></div><img src={IMG("hero-train.png")} alt="" style={{height:140, width:"auto", margin:"-20px -10px -30px 0", filter:"drop-shadow(0 10px 14px rgba(21,48,58,.25))"}}/></Card>
 
       <h2>What do you want to train?</h2>
-      <Card><div className="focus">{[["upper","Upper","Chest, back, shoulders, arms"],["lower","Lower","Quads, hams, glutes, calves"],["core","Core","Abs and obliques"]].map(([v, t, s]) => <button key={v} aria-pressed={p.focus.includes(v)} onClick={() => setP({...p, focus: p.focus.includes(v) ? p.focus.filter(x => x !== v) : [...p.focus, v]})}><b>{t}</b><small>{s}</small></button>)}</div></Card>
+      <Card><div className="focus-lv">{[["upper","Upper body","Chest, back, shoulders, arms"],["lower","Lower body","Quads, hams, glutes, calves"],["core","Core","Abs and obliques"]].map(([v, t, s]) => <div key={v} className="focus-row"><div><b>{t}</b><small>{s}</small></div><LevelSlider id={"lv-" + v} value={em[v]} labels={LEVEL_LABEL} onChange={n => setP({...p, emphasis:{...em, [v]:n}})}/></div>)}</div>
+        <small className="muted" style={{display:"block", marginTop:10}}>Normal is a full share of the week. A little or Some adds that area as a finisher on the main days; More and Max give it extra sets.</small></Card>
 
       <h2>Goal</h2>
       <Segmented options={[["size","Size"],["strength","Strength"],["endurance","Endurance"]]} value={p.goal} onChange={v => setP({...p, goal:v})}/>
