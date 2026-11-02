@@ -79,6 +79,7 @@ export function useWorkout(data, date, dayIdx){
     if (miss >= 3 || prev.r <= range.lo - 2) { const lad = ladder((LIB_BY_KEY[key] || {}).equip, data.gear); const w = lad.prev(prev.w); if (w && w < prev.w) return {w, r:range.lo, note:`Set ${pi + 1} came in at ${prev.r} against ${planned}. Drop to ${w} lb and own ${range.lo}.`}; return {w:prev.w, r:range.lo, note:`Set ${pi + 1} came in at ${prev.r} against ${planned}. Same weight, aim for ${range.lo}.`}; }
     if (miss > 0) return {w:prev.w, r:prev.r, note:`Set ${pi + 1} was ${prev.r}, not ${planned}. Match ${prev.r} this set.`};
     if (reduced) return {w:prev.w, r:Math.min(range.hi, Math.max(range.lo, prev.r)), note:`Staying at ${prev.w} lb after set ${pi + 1}.`};
+    if (prev.w > sg.w) return {w:prev.w, r:sg.reps[si] ?? Math.min(range.hi, prev.r), note:`You went up to ${prev.w} lb on set ${pi + 1} and got it. Staying there.`};   // went heavier than planned and made it
     return base; }, [suggestions, day, savedSet, data.gear]);
   const save = async (key, i, w, r, e) => { const pr = detectPR(data.prs, key, w, r); const t = target(key, i).r || null; await api.saveSet(id, date, dayIdx, key, i, w, r, e, t); return pr; };
   const finish = (pending, note) => api.finish(id, date, dayIdx, pending, note);
